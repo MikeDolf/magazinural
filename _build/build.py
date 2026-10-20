@@ -26,9 +26,10 @@ from data.sections import SECTIONS
 from data.listings import LISTINGS, CONTRACTORS
 from data.texts import TEXTS, LEADS
 from data.seo import SEO
+from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "6"  # меняйте при правке css/js
+VER = "7"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 CONTRACTOR = {c["id"]: c for c in CONTRACTORS}
@@ -137,7 +138,7 @@ def footer():
     for chunk in (core[:half], core[half:]):
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
-                + '<li><a href="/podryadchikam/">Подрядчикам</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
+                + '<li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/podryadchikam/">Подрядчикам</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
@@ -380,6 +381,69 @@ def simple_page(path, title, h1, html_body, index=True):
     write(path, body)
 
 
+NORMS_PATH = "/gde-postavit-postroyku/"
+
+
+def norms_page():
+    """Справочник расстояний: выбор постройки показывает её паспорт места, таблица — всё сразу (и без JS)."""
+    picks = "".join(
+        f'<label class="pick"><input type="radio" name="norm" value="{n["key"]}"{" checked" if i == 0 else ""}><span>{e(n["name"])}</span></label>'
+        for i, n in enumerate(N.NORMS))
+    cards = []
+    for i, n in enumerate(N.NORMS):
+        rows = "".join(f'<tr><th scope="row">{e(t)}</th><td>{e(n[k])}</td></tr>' for k, t in N.COLUMNS)
+        link = (f'<a class="btn btn--ghost" href="{n["url"]}">Мастера и объекты</a>' if n["url"] else "")
+        cards.append(f"""<article class="passport spot" data-norm="{n['key']}"{"" if i == 0 else " hidden"}>
+  <header class="passport__bar"><span>Паспорт места</span><span class="passport__num">{e(N.SOURCE)}</span></header>
+  <div class="passport__body">
+    <h3 class="passport__title">{e(n['name'])}</h3>
+    <table class="passport__table"><tbody>{rows}</tbody></table>
+    <p class="spot__note">{e(n['note'])}</p>
+    <div class="passport__foot"><a class="btn btn--frame" href="#zayavka" data-object="{e(n['name'])}">Заявка мастеру</a>{link}</div>
+  </div>
+</article>""")
+    head_cells = "".join(f'<th scope="col">{e(t)}</th>' for _, t in N.COLUMNS)
+    def name_cell(n):
+        return f'<a href="{n["url"]}">{e(n["name"])}</a>' if n["url"] else e(n["name"])
+
+    trs = "".join(f'<tr><th scope="row">{name_cell(n)}</th>' + "".join(f"<td>{e(n[k])}</td>" for k, _ in N.COLUMNS) + "</tr>"
+                  for n in N.NORMS)
+    title = "Где поставить баню, хозблок, туалет на участке: расстояния по СП 53.13330"
+    desc = ("Сколько метров от границы соседа и от дома до бани, хозблока, туалета, душа, беседки и гаража. "
+            "Расстояния по СП 53.13330.2019 для садовых участков.")
+    body = f"""{head(f"{title} | {SITE['name']}", desc, NORMS_PATH, True)}{header()}
+<main id="main">
+  <div class="page">
+    {crumbs([("Главная", "/"), ("Где поставить постройку", NORMS_PATH)])}
+    <div class="intro">
+      <h1>Где поставить постройку на участке</h1>
+      <p class="intro__lead">Выберите, что строите, — покажем минимальные расстояния до границы соседа, дома и колодца по СП 53.13330.2019 для садовых участков.</p>
+    </div>
+    <section class="norms" aria-label="Подбор расстояний">
+      <fieldset class="norms__pick"><legend>Что ставите</legend>{picks}</fieldset>
+      <div class="norms__card">{"".join(cards)}</div>
+    </section>
+    <section class="article">
+      <h2>Все расстояния одной таблицей</h2>
+      <div class="norms__scroll"><table class="norms__table"><thead><tr><th scope="col">Постройка</th>{head_cells}</tr></thead><tbody>{trs}</tbody></table></div>
+      <h2>Как считать расстояние</h2>
+      <p>{e(N.HOW_TO_MEASURE)}</p>
+      <h2>Что проверить кроме СП</h2>
+      <ul>
+        <li>Тип участка. Свод правил 53.13330 написан для садовых участков и СНТ. Для ИЖС и ЛПХ действуют правила землепользования и застройки вашего муниципалитета — посмотрите их на сайте администрации.</li>
+        <li>Устав и решения СНТ: они бывают строже общих норм.</li>
+        <li>Охранные зоны: газ, линии электропередачи, водоохранная зона у реки или озера.</li>
+        <li>Договорённость с соседом. Если постройку ставят ближе нормы, согласие соседа лучше оформить письменно.</li>
+      </ul>
+      <p>Таблица — справка, а не юридическое заключение. Если сомневаетесь, уточните в администрации или правлении СНТ до начала работ. Мастер на замере тоже подскажет, где постройка встанет без споров с соседями.</p>
+    </section>
+  </div>
+  {lead_form()}
+</main>
+{footer()}"""
+    write(NORMS_PATH, body)
+
+
 def contractors_page():
     simple_page("/podryadchikam/", "Подрядчикам: разместить объекты", "Подрядчикам", md("""
 ## Как попасть на площадку
@@ -425,13 +489,15 @@ def main():
             p, ok = section_page(s, sub)
             if ok:
                 indexable.append(p)
+    norms_page()
+    indexable.append(NORMS_PATH)
     contractors_page()
     policy_page()
     not_found()
     urls = "".join(f"<url><loc>{SITE['base_url']}{p}</loc></url>" for p in indexable)
     (ROOT / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', encoding="utf-8")
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 3
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 

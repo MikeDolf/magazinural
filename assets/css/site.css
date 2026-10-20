@@ -301,3 +301,27 @@ button, input, select, textarea { font-family: inherit; }
   .tabs::-webkit-scrollbar { display: none; }
   .tabs ul { flex-wrap: nowrap; padding-right: 48px; }
 }
+
+/* ---------- где поставить постройку ---------- */
+.norms { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); gap: var(--gap); align-items: start; }
+.norms__pick { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
+.norms__pick legend { font-weight: 600; margin-bottom: 10px; padding: 0; }
+.pick { position: relative; }
+.pick input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.pick span {
+  display: block; padding: 9px 14px; border: 1px solid var(--rule-strong); border-radius: var(--r);
+  background: var(--board); cursor: pointer;
+}
+.pick:hover span { border-color: var(--frame); }
+.pick input:checked + span { background: var(--frame); border-color: var(--frame); color: var(--frame-ink); }
+.pick input:focus-visible + span { outline: 3px solid var(--signal); outline-offset: 2px; }
+.spot .passport__table td { font-size: 1.05rem; font-weight: 650; color: var(--frame-deep); }
+.spot__note { font-size: 0.95rem; line-height: 1.55; color: var(--ink-2); }
+.spot .passport__num { color: var(--frame-ink-2); font-size: 0.8rem; }
+.norms__scroll { overflow-x: auto; margin: 12px 0 8px; }
+.norms__table { width: 100%; min-width: 34rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.norms__table th, .norms__table td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.norms__table thead th { font-size: 0.85rem; color: var(--ink-3); font-weight: 500; border-bottom: 1px solid var(--rule-strong); }
+.norms__table tbody th { font-weight: 500; }
+@media (max-width: 760px) { .norms { grid-template-columns: 1fr; } }
+.spot[hidden] { display: none; }

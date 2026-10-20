@@ -53,3 +53,12 @@ if (nav) {
   document.addEventListener("click", (ev) => { if (!wide.matches && nav.open && !nav.contains(ev.target)) nav.open = false; });
   document.addEventListener("keydown", (ev) => { if (!wide.matches && ev.key === "Escape" && nav.open) { nav.open = false; nav.querySelector("summary").focus(); } });
 }
+
+// «Где поставить постройку»: выбор постройки показывает её паспорт места.
+document.querySelectorAll(".norms").forEach((box) => {
+  const cards = box.querySelectorAll("[data-norm]");
+  box.addEventListener("change", (ev) => {
+    if (ev.target.name !== "norm") return;
+    cards.forEach((c) => { c.hidden = c.dataset.norm !== ev.target.value; });
+  });
+});
