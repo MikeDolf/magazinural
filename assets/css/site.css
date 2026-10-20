@@ -361,3 +361,12 @@ button, input, select, textarea { font-family: inherit; }
 .hub span { font-size: 0.94rem; color: var(--ink-2); }
 .crumbs a, .crumbs span { display: inline-block; padding: 12px 0; }
 .crumbs ol { padding-top: 6px; }
+
+/* цели касания от 40–48 px (docs/on-page-seo.md, п. 12) */
+.logo { min-height: 48px; }
+.dir__head { display: inline-flex; align-items: center; min-height: 40px; }
+.dir__item ul { gap: 0; margin-top: 2px; }
+.dir__item ul a { display: inline-flex; align-items: center; min-height: 40px; }
+.norms__table a { display: inline-flex; align-items: center; min-height: 40px; }
+.useful { padding: 8px 0 56px; }
+.useful h2 { margin-bottom: 16px; }

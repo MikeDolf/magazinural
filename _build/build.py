@@ -367,7 +367,7 @@ def section_page(section, sub=None):
     lead = LEADS.get(path) or (f"Сданные объекты мастеров Екатеринбурга и области: параметры, цена «от» и кто строил. "
                                f"Оставьте одну заявку — её получат подходящие подрядчики.")
     tabs = [("Все", section["url"], len(listings_for(section)))] + [
-        (cap(s["name"].replace(section["name"], "").strip(" ,") or s["name"]), s["url"], len(listings_for(section, s["url"])))
+        (cap(s["name"].replace(section["name"], "").strip(" ,-") or s["name"]), s["url"], len(listings_for(section, s["url"])))
         for s in section["subs"]]
     tabs_html = ""
     if section["subs"]:
@@ -473,6 +473,14 @@ def home_page():
       <ul class="dir__list">{core}</ul>
       <h3 class="dir__sub">Дома и большие постройки</h3>
       <ul class="dir__list">{ext}</ul>
+    </section>
+    <section class="related useful" aria-labelledby="use-h">
+      <h2 id="use-h">Перед стройкой</h2>
+      <ul>
+        <li><a href="/gde-postavit-postroyku/">Где поставить баню, хозблок и туалет: расстояния{icon("arrow")}</a></li>
+        <li><a href="/stati/">Статьи: как выбрать и построить{icon("arrow")}</a></li>
+        <li><a href="/podryadchikam/">Подрядчикам: разместить объекты{icon("arrow")}</a></li>
+      </ul>
     </section>
   </div>
   {lead_form()}
