@@ -9,7 +9,7 @@
 Что скрипт делает намеренно:
   * страница без объявлений и без собственного текста собирается с noindex
     и не попадает в sitemap: пустой каталог не отдаём поиску;
-  * не выдумывает объявления: пока подрядчики не переданы, вместо сетки —
+  * не выдумывает объекты: пока владелец не передал фото и паспорта, вместо сетки —
     пустое состояние с образцом паспорта (поля без значений);
   * не размечает цены через schema.org/Offer, пока цены не реальные.
 """
@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA
 from data.sections import SECTIONS
-from data.listings import LISTINGS, CONTRACTORS
+from data.listings import LISTINGS
 from data.texts import TEXTS, LEADS, FAQ
 from data.articles import ARTICLES
 from data.seo import SEO
@@ -34,7 +34,6 @@ ROOT = Path(__file__).resolve().parent.parent
 VER = "8"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
-CONTRACTOR = {c["id"]: c for c in CONTRACTORS}
 
 
 def e(t):
@@ -114,7 +113,7 @@ ORG_ID = f"{SITE['base_url']}/#org"
 
 
 def org_ld():
-    org = {"@context": "https://schema.org", "@type": "Organization", "@id": ORG_ID, "name": SITE["name"],
+    org = {"@context": "https://schema.org", "@type": "HomeAndConstructionBusiness", "@id": ORG_ID, "name": SITE["name"],
            "url": SITE["base_url"] + "/", "logo": SITE["base_url"] + "/assets/img/logo-512.png",
            "areaServed": SITE["region"]}
     if SITE.get("phone"):
@@ -235,11 +234,11 @@ def footer():
     for chunk in (core[:half], core[half:]):
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
-                + '<li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/podryadchikam/">Подрядчикам</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
+                + '<li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
-      <p>Площадка подрядчиков: сданные объекты, параметры и условия мастеров в одном месте.</p></div>
+      <p>Строим бани, беседки, навесы, террасы и другие деревянные постройки для участка в Екатеринбурге и области.</p></div>
     <div class="foot__cols">{''.join(cols)}</div>
   </div>
 </footer>
@@ -260,7 +259,7 @@ def crumbs(items):
 # ---------- паспорт объекта ----------
 
 PASSPORT_ROWS = [
-    ("Подрядчик", "contractor"), ("Сдан", "built"), ("Где", "place"), ("Размер", "size"),
+    ("Сдан", "built"), ("Где", "place"), ("Размер", "size"),
     ("Материал", "material"), ("Крыша", "roof"), ("Фундамент", "foundation"), ("Срок работ", "duration"),
     ("Договор", "contract"), ("Гарантия", "warranty"),
 ]
@@ -272,13 +271,8 @@ def passport(item=None):
     rows = []
     for label, k in PASSPORT_ROWS:
         v = item.get(k)
-        c = CONTRACTOR.get(item.get("contractor"), {})
-        if k == "contractor" and v:
-            v = c.get("name", v)
-        if k in ("contract", "warranty"):
-            v = c.get(k)
-            if k == "contract" and v is not None:
-                v = "да" if v else "нет"
+        if k == "contract" and v is not None:
+            v = "да" if v else "нет"
         rows.append(f'<tr><th scope="row">{label}</th><td>{e(v) if v else "<span class=blank></span>"}</td></tr>')
     price = item.get("price_from")
     price_html = (f'<span class="passport__price-label">Цена от</span> <b>{rub(price)}</b>' if price
@@ -287,12 +281,12 @@ def passport(item=None):
     if sample:
         figure = f'<div class="passport__photo passport__photo--empty">{icon("photo")}<span>Фото сданного объекта</span></div>'
         title = "Название объекта"
-        action = '<a class="btn btn--ghost" href="/podryadchikam/">Разместить свой объект</a>'
+        action = '<a class="btn btn--ghost" href="#zayavka">Хочу такую постройку</a>'
     else:
         src = item["photos"][0] if item.get("photos") else ""
         figure = f'<img class="passport__photo" src="/{e(src)}" alt="{e(item["title"])}" loading="lazy" width="640" height="420">'
         title = item["title"]
-        action = f'<a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Заявка мастеру</a>'
+        action = f'<a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a>'
     return f"""<article class="passport{' passport--sample' if sample else ''}">
   <header class="passport__bar"><span>Паспорт объекта</span><span class="passport__num">{num}</span></header>
   {figure}
@@ -312,13 +306,13 @@ def lead_form(selected_key=None):
     return f"""<section class="lead" id="zayavka" aria-labelledby="zayavka-h">
   <div class="lead__in">
     <div class="lead__text">
-      <h2 id="zayavka-h">Одна заявка — несколько мастеров</h2>
-      <p>Опишите, что хотите построить. Мы передадим заявку подрядчикам, которые делают такие постройки в вашем районе, и они свяжутся с вами сами.</p>
+      <h2 id="zayavka-h">Рассчитаем смету на вашу постройку</h2>
+      <p>Опишите, что хотите построить. Перезвоним, уточним детали и рассчитаем смету. Если нужно — приедем на замер.</p>
       <ul class="ticks">
-        <li>{icon('check')}Сравниваете предложения, а не обзваниваете компании</li>
-        <li>{icon('check')}Телефон получают только подходящие мастера</li>
+        <li>{icon('check')}Перезвоним и уточним задачу</li>
+        <li>{icon('check')}Смета по вашим размерам и материалам</li>
       </ul>
-      <p class="lead__area">Принимаем заявки из Екатеринбурга и пригородов: {e(", ".join(AREA[1:]))}.</p>
+      <p class="lead__area">Работаем в Екатеринбурге и пригородах: {e(", ".join(AREA[1:]))}.</p>
     </div>
     <form class="form" novalidate data-form>
       <div class="form__grid">
@@ -328,7 +322,7 @@ def lead_form(selected_key=None):
         <label class="field"><span>Когда</span><select name="when">{when}</select></label>
         <label class="field field--wide"><span>Что важно</span><textarea name="note" rows="3" placeholder="мангал, остекление, материал, бюджет"></textarea></label>
         <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
-        <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="phone-err"><em class="field__err" id="phone-err" hidden>Укажите телефон, чтобы мастер мог перезвонить</em></label>
+        <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="phone-err"><em class="field__err" id="phone-err" hidden>Укажите телефон, чтобы мы могли перезвонить</em></label>
       </div>
       <label class="agree"><input type="checkbox" name="agree" required> <span>Согласен на обработку персональных данных по <a href="/politika-konfidencialnosti/">политике</a></span></label>
       <div class="form__actions"><button class="btn btn--frame" type="submit">Отправить заявку {icon('arrow')}</button>
@@ -364,8 +358,8 @@ def section_page(section, sub=None):
     seo = SEO.get(path)
     if seo:
         h1 = seo[0]
-    lead = LEADS.get(path) or (f"Сданные объекты мастеров Екатеринбурга и области: параметры, цена «от» и кто строил. "
-                               f"Оставьте одну заявку — её получат подходящие подрядчики.")
+    lead = LEADS.get(path) or (f"{h1}: строим по вашим размерам, с фундаментом и кровлей. "
+                               f"Оставьте заявку — перезвоним, уточним задачу и рассчитаем смету.")
     tabs = [("Все", section["url"], len(listings_for(section)))] + [
         (cap(s["name"].replace(section["name"], "").strip(" ,-") or s["name"]), s["url"], len(listings_for(section, s["url"])))
         for s in section["subs"]]
@@ -381,9 +375,9 @@ def section_page(section, sub=None):
         grid = f"""<div class="empty">
   <div class="empty__text">
     <h2>Стенд пока пуст</h2>
-    <p>Мы собираем сданные объекты подрядчиков Екатеринбурга. У каждого объявления будет паспорт: кто строил, когда сдан, размер, материал, крыша, фундамент, договор, гарантия и цена «от».</p>
-    <p>Пока объявлений нет, оставьте заявку — подберём мастера вручную.</p>
-    <p class="empty__actions"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> <a class="btn btn--ghost" href="/podryadchikam/">Я подрядчик</a></p>
+    <p>Скоро здесь появятся наши сданные объекты. У каждого будет паспорт: когда сдан, где, размер, материал, крыша, фундамент, договор, гарантия и цена «от».</p>
+    <p>Пока раздел наполняется, оставьте заявку: расскажем о похожих постройках и рассчитаем смету под ваш участок.</p>
+    <p class="empty__actions"><a class="btn btn--frame" href="#zayavka">Рассчитать смету</a> <a class="btn btn--ghost" href="/o-kompanii/">Как мы работаем</a></p>
   </div>
   {passport()}
 </div>"""
@@ -402,7 +396,7 @@ def section_page(section, sub=None):
         title = fit_title(seo[1].replace("{цены}", ", цены" if priced else ""))
         desc = seo[2]
     else:
-        title = fit_title(f"{h1} — объекты и мастера")
+        title = fit_title(f"{h1} — цены и проекты")
         desc = lead
     schema = [crumbs_ld(trail), {"@context": "https://schema.org", "@type": "Service", "name": h1, "serviceType": name,
               "url": SITE["base_url"] + path, "provider": {"@id": ORG_ID},
@@ -425,7 +419,7 @@ def section_page(section, sub=None):
   <div class="page">
     {article}
     {faq_block(faq)}
-    <p class="cta-line">Не нашли ответ или хотите смету? <a href="#zayavka">Оставьте заявку</a> — мастера ответят сами.</p>
+    <p class="cta-line">Не нашли ответ или хотите смету? <a href="#zayavka">Оставьте заявку</a> — перезвоним и рассчитаем.</p>
     {read}
     {related}
   </div>
@@ -436,36 +430,30 @@ def section_page(section, sub=None):
 
 
 def home_page():
-    if LISTINGS:
-        home_lead = ("Смотрите сданные объекты разных подрядчиков с паспортом: размер, материал, крыша, сроки, гарантия и цена «от». "
-                     "Опишите задачу один раз — заявку получат подходящие мастера.")
-        step1 = "и посмотрите паспорта сданных объектов: кто строил, из чего, за сколько."
-    else:
-        home_lead = ("Собираем сданные объекты подрядчиков Екатеринбурга: у каждого будет паспорт с размером, материалом, сроками, гарантией и ценой «от». "
-                     "Пока стенд наполняется, опишите задачу — подберём мастера вручную.")
-        step1 = "Скоро здесь будут паспорта сданных объектов: кто строил, из чего, за сколько."
     dirs = []
     for s in SECTIONS:
         subs = "".join(f'<li><a href="{x["url"]}">{e(x["name"])}</a></li>' for x in s["subs"][:4])
         dirs.append(f'<li class="dir__item"><a class="dir__head" href="{s["url"]}">{e(s["name"])}</a>{f"<ul>{subs}</ul>" if subs else ""}</li>')
     core = "".join(d for d, s in zip(dirs, SECTIONS) if s["core"])
     ext = "".join(d for d, s in zip(dirs, SECTIONS) if not s["core"])
-    body = f"""{head("Деревянные постройки под ключ в Екатеринбурге — мастера",
-                 "Бани, беседки, навесы, террасы и хозблоки под ключ от подрядчиков Екатеринбурга и области. Одна заявка — несколько смет от мастеров, сравните и выберите.",
+    home_lead = (f"«{e(SITE['name'])}» строит бани, беседки, навесы, террасы, хозблоки и каркасные дома для участка в Екатеринбурге "
+                 "и пригородах. Приедем на замер, подготовим проект и смету, построим под ключ.")
+    body = f"""{head("Деревянные постройки под ключ в Екатеринбурге | Магазин Урал",
+                 "Строим бани, беседки, навесы, террасы и хозблоки под ключ в Екатеринбурге и области: замер, проект, смета, договор. Оставьте заявку — рассчитаем смету.",
                  "/", True)}{header()}
 <main id="main">
   <div class="page">
     <div class="intro intro--home">
-      <h1>Деревянные постройки для участка — от мастеров Екатеринбурга</h1>
+      <h1>Деревянные постройки под ключ в Екатеринбурге</h1>
       <p class="intro__lead">{home_lead}</p>
-      <p><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> <a class="btn btn--ghost" href="#razdely">Выбрать постройку</a></p>
+      <p><a class="btn btn--frame" href="#zayavka">Рассчитать смету</a> <a class="btn btn--ghost" href="#razdely">Что строим</a></p>
     </div>
     <section class="how" aria-labelledby="how-h">
-      <h2 id="how-h">Как это работает</h2>
+      <h2 id="how-h">Как мы работаем</h2>
       <ol class="how__list">
-        <li><b>Выберите тип постройки</b><span>{step1}</span></li>
-        <li><b>Оставьте одну заявку</b><span>с размером, местом и пожеланиями — без звонков в десять компаний.</span></li>
-        <li><b>Мастера свяжутся сами</b><span>и предложат смету. Сравниваете по фактам и выбираете.</span></li>
+        <li><b>Заявка и звонок</b><span>Вы описываете постройку, мы перезваниваем и уточняем размеры, участок и пожелания.</span></li>
+        <li><b>Замер, проект и смета</b><span>Смотрим участок, предлагаем конструкцию и считаем смету по позициям.</span></li>
+        <li><b>Договор и стройка</b><span>Фиксируем состав работ, сроки и оплату в договоре, строим и сдаём постройку.</span></li>
       </ol>
     </section>
     <section class="dir" id="razdely" aria-labelledby="dir-h">
@@ -479,7 +467,7 @@ def home_page():
       <ul>
         <li><a href="/gde-postavit-postroyku/">Где поставить баню, хозблок и туалет: расстояния{icon("arrow")}</a></li>
         <li><a href="/stati/">Статьи: как выбрать и построить{icon("arrow")}</a></li>
-        <li><a href="/podryadchikam/">Подрядчикам: разместить объекты{icon("arrow")}</a></li>
+        <li><a href="/o-kompanii/">Как мы работаем{icon("arrow")}</a></li>
       </ul>
     </section>
   </div>
@@ -489,12 +477,12 @@ def home_page():
     write("/", body)
 
 
-def simple_page(path, title, h1, html_body, index=True):
-    body = f"""{head(fit_title(title), title, path, index, [crumbs_ld([("Главная", "/"), (h1, path)])])}{header()}
+def simple_page(path, title, h1, html_body, index=True, desc=None):
+    body = f"""{head(fit_title(title), desc or title, path, index, [crumbs_ld([("Главная", "/"), (h1, path)])])}{header()}
 <main id="main"><div class="page">{crumbs([("Главная", "/"), (h1, path)])}
 <div class="intro"><h1>{e(h1)}</h1></div>
 <section class="article">{html_body}</section></div>
-{lead_form() if path == "/podryadchikam/" else ""}
+{lead_form() if path == "/o-kompanii/" else ""}
 </main>
 {footer()}"""
     write(path, body)
@@ -518,7 +506,7 @@ def norms_page():
     <h3 class="passport__title">{e(n['name'])}</h3>
     <table class="passport__table"><tbody>{rows}</tbody></table>
     <p class="spot__note">{e(n['note'])}</p>
-    <div class="passport__foot"><a class="btn btn--frame" href="#zayavka" data-object="{e(n['name'])}">Заявка мастеру</a>{link}</div>
+    <div class="passport__foot"><a class="btn btn--frame" href="#zayavka" data-object="{e(n['name'])}">Хочу такую же</a>{link}</div>
   </div>
 </article>""")
     head_cells = "".join(f'<th scope="col">{e(t)}</th>' for _, t in N.COLUMNS)
@@ -556,7 +544,7 @@ def norms_page():
         <li>Договорённость с соседом. Если постройку ставят ближе нормы, согласие соседа лучше оформить письменно.</li>
       </ul>
       {faq_block(N.FAQ).replace('<section class="faq"', '<div class="faq"').replace('</section>', '</div>')}
-      <p>Таблица — справка, а не юридическое заключение. Если сомневаетесь, уточните в администрации или правлении СНТ до начала работ. Мастер на замере тоже подскажет, где постройка встанет без споров с соседями.</p>
+      <p>Таблица — справка, а не юридическое заключение. Если сомневаетесь, уточните в администрации или правлении СНТ до начала работ. На замере мы тоже подскажем, где постройка встанет без споров с соседями.</p>
     </section>
   </div>
   {lead_form()}
@@ -605,9 +593,9 @@ def article_page(a):
     </header>
     {toc_html}
     <div class="article article--post">{body_html}</div>
-    <aside class="hand" aria-label="Заказать у мастеров">
-      <h2>Не хотите строить сами?</h2>
-      <p>В разделе «<a href="{section["url"]}">{e(section["name"])}</a>» — мастера Екатеринбурга и области. Опишите задачу один раз, и подходящие подрядчики пришлют сметы.</p>
+    <aside class="hand" aria-label="Заказать строительство">
+      <h2>Не хотите строить сами? Построим</h2>
+      <p>В разделе «<a href="{section["url"]}">{e(section["name"])}</a>» — что мы строим и как. Оставьте заявку: перезвоним, приедем на замер и рассчитаем смету.</p>
       <p><a class="btn btn--frame" href="#zayavka">Оставить заявку</a></p>
     </aside>
     <div class="article article--post">{faq_block(a.get("faq"))}</div>
@@ -634,7 +622,7 @@ def articles_hub():
     body = f"""{head(fit_title(title), desc, "/stati/", True, [crumbs_ld(trail)])}{header()}
 <main id="main"><div class="page">{crumbs(trail)}
 <div class="intro"><h1>Статьи о деревянных постройках</h1>
-<p class="intro__lead">Как выбрать, спроектировать и построить постройку для участка. В каждой статье — ссылка на мастеров, если строить самим не хочется.</p></div>
+<p class="intro__lead">Как выбрать, спроектировать и построить постройку для участка. Если строить самим не хочется — в каждой статье есть ссылка на раздел, где можно заказать постройку.</p></div>
 <section class="article">{"".join(groups)}</section></div>
 {lead_form()}
 </main>
@@ -642,23 +630,40 @@ def articles_hub():
     write("/stati/", body)
 
 
-def contractors_page():
-    simple_page("/podryadchikam/", "Подрядчикам: разместить объекты", "Подрядчикам", md("""
-## Как попасть на площадку
+def about_page():
+    """О компании: только то, что верно без реквизитов. Телефон, адрес, годы и объекты — когда даст владелец."""
+    path = "/o-kompanii/"
+    area = ", ".join(AREA)
+    text = md(f"""
+«{SITE['name']}» строит деревянные постройки для загородного участка: бани, беседки, навесы и карпорты, террасы и веранды, хозблоки и сараи, каркасные дома, детские площадки и малые формы. Работаем в Екатеринбурге и пригородах.
 
-Мы размещаем сданные объекты — не рендеры и не чужие фото. Для каждого объекта нужен паспорт: что за постройка, когда сдана, где, размер, материал, крыша, фундамент, срок работ и цена «от».
+## Как мы работаем
 
-## Что прислать
+1. **Заявка.** Вы оставляете заявку на сайте: что хотите построить, примерный размер, где участок.
+2. **Звонок.** Перезваниваем, уточняем назначение постройки, материалы, сроки и бюджет.
+3. **Замер.** Смотрим участок: грунт, перепады, подъезд, где встанет постройка и как её развернуть относительно дома и соседей.
+4. **Проект и смета.** Предлагаем конструкцию и считаем смету по позициям — фундамент, каркас, кровля, отделка, доставка.
+5. **Договор.** Фиксируем состав работ, материалы, сроки, порядок оплаты и гарантию до начала работ.
+6. **Строительство и сдача.** Строим, показываем результат и передаём постройку.
 
-- Название бригады или компании и где вы работаете.
-- Фото сданных объектов: общий вид и детали, не меньше трёх на объект.
-- Параметры по каждому объекту — по списку выше.
-- Условия: договор, гарантия, выезд на замер.
+## Что строим
 
-## Что вы получаете
+- [Бани](/bani/) — каркасные, из бруса и бревна, бочки и модульные.
+- [Беседки](/besedki/) — открытые, закрытые, с мангалом и печью.
+- [Навесы и карпорты](/navesy/), [террасы](/terrasy/) и [веранды](/verandy/).
+- [Хозблоки](/hozbloki/), [сараи](/sarai/), [дровники](/drovniki/).
+- [Каркасные дома](/karkasnye-doma/) для дачи и постоянного проживания.
 
-Заявки от людей, которым нужна именно ваша постройка в вашем районе. Условия передачи заявок обсуждаем лично.
-""") + "<p>Пока форма для подрядчиков не подключена — напишите через форму заявки ниже, указав в поле «Что важно», что вы подрядчик.</p>", index=False)
+## Где работаем
+
+{area}. Если вашего посёлка нет в списке — напишите в заявке, обсудим выезд.
+
+## Перед стройкой
+
+Проверьте, где постройка встанет по нормам: расстояния до забора, дома и колодца собраны в справочнике [«Где поставить постройку»](/gde-postavit-postroyku/).
+""")
+    simple_page(path, "О компании «Магазин Урал»: как мы строим", "О компании", text, index=True,
+                desc="«Магазин Урал» строит бани, беседки, навесы, террасы и хозблоки в Екатеринбурге и пригородах. Как мы работаем: заявка, замер, смета, договор и сдача объекта.")
 
 
 def policy_page():
@@ -695,7 +700,8 @@ def main():
         for a in ARTICLES:
             article_page(a)
             indexable.append(a["url"])
-    contractors_page()
+    about_page()
+    indexable.append("/o-kompanii/")
     policy_page()
     not_found()
     urls = "".join(f"<url><loc>{SITE['base_url']}{p}</loc></url>" for p in indexable)

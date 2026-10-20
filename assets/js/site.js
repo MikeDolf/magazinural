@@ -31,11 +31,11 @@ document.querySelectorAll("[data-form]").forEach((form) => {
     }
     status.hidden = false;
     status.classList.remove("is-ok");
-    status.textContent = "Приём заявок подключим перед запуском площадки. Сейчас заявка никуда не отправлена.";
+    status.textContent = "Приём заявок подключим перед запуском сайта. Сейчас заявка никуда не отправлена.";
   });
 });
 
-// «Заявка мастеру» в паспорте: подставляем объект в поле пожеланий.
+// «Хочу такую же» в паспорте: подставляем объект в поле пожеланий.
 document.addEventListener("click", (ev) => {
   const a = ev.target.closest("[data-object]");
   if (!a) return;

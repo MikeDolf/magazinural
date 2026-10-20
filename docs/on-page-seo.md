@@ -47,7 +47,7 @@
 - `target="_blank" rel="noopener"`; партнёрские — `rel="sponsored nofollow"`.
 
 ## 9. Schema.org (JSON-LD в head)
-- Organization — на всех страницах; BreadcrumbList — на всех.
+- HomeAndConstructionBusiness (подтип LocalBusiness) — на всех страницах; BreadcrumbList — на всех.
 - Service — на коммерческих страницах; Article — на статьях; FAQPage — где есть FAQ.
 - Offer и рейтинги — только с реальными ценами и отзывами.
 

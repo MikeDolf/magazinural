@@ -36,7 +36,7 @@ def check(path):
     is_post = 'class="page post"' in t
     is_section = path in SEO
     # Собственный текст страницы: вступление, статья, FAQ (без формы, шапки, подвала, стенда).
-    own = "".join(re.findall(r'<div class="intro">.*?</div>|<header class="intro">.*?</header>', t, re.S))
+    own = "".join(re.findall(r'<div class="intro[^"]*">.*?</div>|<header class="intro">.*?</header>', t, re.S))
     own += "".join(re.findall(r'<(?:section|div) class="article[^"]*"[^>]*>(.*?)</(?:section|div)>\s*(?=<|$)', t, re.S))
     own += "".join(re.findall(r'<section class="faq".*?</section>', t, re.S))
     body = text_of(own)
@@ -48,7 +48,7 @@ def check(path):
         issues.append(f"description {len(desc)} (150–160)")
     if len(h1) != 1:
         issues.append(f"h1: {len(h1)}")
-    for need in ("og:title", "og:image", "twitter:card", 'rel="icon"', "apple-touch-icon", '"BreadcrumbList"', '"Organization"'):
+    for need in ("og:title", "og:image", "twitter:card", 'rel="icon"', "apple-touch-icon", '"BreadcrumbList"', '"HomeAndConstructionBusiness"'):
         if need not in t and not (path == "/" and need == '"BreadcrumbList"'):
             issues.append(f"нет {need}")
     if h1:
