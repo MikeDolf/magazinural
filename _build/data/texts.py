@@ -43,8 +43,8 @@ TEXTS = {
 }
 
 # Тексты по семействам разделов лежат в отдельных файлах.
-from data import texts_bani, texts_core  # noqa: E402
+from data import texts_bani, texts_core, texts_more  # noqa: E402
 
-for _m in (texts_bani, texts_core):
+for _m in (texts_bani, texts_core, texts_more):
     LEADS.update(_m.LEADS)
     TEXTS.update(_m.TEXTS)
