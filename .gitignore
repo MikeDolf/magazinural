@@ -5,3 +5,8 @@ semantics/
 *.csv
 
 .DS_Store
+
+# Внутренние документы impeccable: репозиторий публичный
+PRODUCT.md
+DESIGN.md
+.impeccable/
