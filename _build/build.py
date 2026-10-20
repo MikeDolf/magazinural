@@ -27,7 +27,7 @@ from data.listings import LISTINGS, CONTRACTORS
 from data.texts import TEXTS, LEADS
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "5"  # меняйте при правке css/js
+VER = "6"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 CONTRACTOR = {c["id"]: c for c in CONTRACTORS}
@@ -119,7 +119,7 @@ def header():
   <div class="top__in">
     <a class="logo" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['tagline'])}</small></span></a>
     <details class="nav">
-      <summary class="nav__toggle">{icon('menu')}<span>Разделы</span></summary>
+      <summary class="nav__toggle" aria-label="Разделы">{icon('menu')}<span class="nav__label">Разделы</span></summary>
       <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li></ul></nav>
     </details>
     <a class="btn btn--enamel top__cta" href="#zayavka"><span class="top__cta-long">Оставить заявку</span><span class="top__cta-short">Заявка</span></a>
@@ -183,7 +183,7 @@ def passport(item=None):
         rows.append(f'<tr><th scope="row">{label}</th><td>{e(v) if v else "<span class=blank></span>"}</td></tr>')
     price = item.get("price_from")
     price_html = (f'<span class="passport__price-label">Цена от</span> <b>{rub(price)}</b>' if price
-                  else '<span class="passport__price-label">Цена от</span> <span class="passport__ask">по запросу</span>')
+                  else '<span class="passport__price-label">Цена</span> <span class="passport__ask">по запросу</span>')
     num = f'№ {e(item["id"])}' if not sample else "№ — · образец"
     if sample:
         figure = f'<div class="passport__photo passport__photo--empty">{icon("photo")}<span>Фото сданного объекта</span></div>'
