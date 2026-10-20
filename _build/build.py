@@ -15,21 +15,23 @@
 """
 
 import html
+import json
 import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS
+from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA
 from data.sections import SECTIONS
 from data.listings import LISTINGS, CONTRACTORS
-from data.texts import TEXTS, LEADS
+from data.texts import TEXTS, LEADS, FAQ
+from data.articles import ARTICLES
 from data.seo import SEO
 from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "7"  # меняйте при правке css/js
+VER = "8"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 CONTRACTOR = {c["id"]: c for c in CONTRACTORS}
@@ -50,28 +52,103 @@ def rub(n):
     return f"{n:,}".replace(",", " ") + " ₽"
 
 
-def md(text):
-    """Мини-разметка текстов разделов: ## заголовок, - список, абзацы."""
-    out, items = [], []
+def inline(t):
+    """Строка текста: экранирование, **жирный**, [анкор](/url/). Внешние ссылки — в новой вкладке."""
+    t = e(t)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+
+    def link(m):
+        text, url = m.group(1), m.group(2)
+        ext = ' target="_blank" rel="noopener"' if url.startswith("http") else ""
+        return f'<a href="{url}"{ext}>{text}</a>'
+    return re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", link, t)
+
+
+def md(text, toc=None):
+    """Мини-разметка: ## и ### заголовки, - и 1. списки, абзацы. В toc складываются (id, H2) для оглавления."""
+    out, items, kind = [], [], None
 
     def flush():
         if items:
-            out.append("<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>")
+            tag = "ol" if kind == "ol" else "ul"
+            out.append(f"<{tag}>" + "".join(f"<li>{x}</li>" for x in items) + f"</{tag}>")
             items.clear()
 
     for block in text.strip().split("\n\n"):
         block = block.strip()
         lines = block.split("\n")
         if all(l.startswith("- ") for l in lines):
-            items.extend(e(l[2:]) for l in lines)
+            if kind != "ul":
+                flush()
+            kind = "ul"
+            items.extend(inline(l[2:]) for l in lines)
+            continue
+        if all(re.match(r"\d+\. ", l) for l in lines):
+            if kind != "ol":
+                flush()
+            kind = "ol"
+            items.extend(inline(re.sub(r"^\d+\. ", "", l)) for l in lines)
             continue
         flush()
-        if block.startswith("## "):
-            out.append(f"<h2>{e(block[3:])}</h2>")
+        kind = None
+        if block.startswith("### "):
+            out.append(f"<h3>{inline(block[4:])}</h3>")
+        elif block.startswith("## "):
+            if toc is not None:
+                hid = f"r{len(toc) + 1}"
+                toc.append((hid, block[3:]))
+                out.append(f'<h2 id="{hid}">{inline(block[3:])}</h2>')
+            else:
+                out.append(f"<h2>{inline(block[3:])}</h2>")
         else:
-            out.append(f"<p>{e(' '.join(lines))}</p>")
+            out.append(f"<p>{inline(' '.join(lines))}</p>")
     flush()
     return "\n".join(out)
+
+
+def ld(obj):
+    return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False).replace("</", "<\\/") + "</script>"
+
+
+ORG_ID = f"{SITE['base_url']}/#org"
+
+
+def org_ld():
+    org = {"@context": "https://schema.org", "@type": "Organization", "@id": ORG_ID, "name": SITE["name"],
+           "url": SITE["base_url"] + "/", "logo": SITE["base_url"] + "/assets/img/logo-512.png",
+           "areaServed": SITE["region"]}
+    if SITE.get("phone"):
+        org["telephone"] = SITE["phone"]
+    return org
+
+
+def crumbs_ld(items):
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": i + 1, "name": n, "item": SITE["base_url"] + u} for i, (n, u) in enumerate(items)]}
+
+
+def faq_ld(items):
+    return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", a).replace("**", "")}}
+        for q, a in items]}
+
+
+def faq_block(items):
+    if not items:
+        return ""
+    qa = "".join(f'<div class="faq__item"><h3>{e(q)}</h3><p>{inline(a)}</p></div>' for q, a in items)
+    return f'<section class="faq" aria-labelledby="faq-h"><h2 id="faq-h">Частые вопросы</h2>{qa}</section>'
+
+
+def tel_link():
+    ph = SITE.get("phone")
+    return f' <a class="btn btn--ghost" href="tel:{re.sub(r"[^+0-9]", "", ph)}">{e(ph)}</a>' if ph else ""
+
+
+def fit_title(t):
+    """Title 50–60 знаков: бренд дописываем, только если влезает (docs/on-page-seo.md)."""
+    full = f"{t} | {SITE['name']}"
+    return full if len(full) <= 60 else t
 
 
 # ---------- иконки (одна толщина линии, 24×24) ----------
@@ -96,8 +173,11 @@ LOGO = ('<svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true">'
 
 # ---------- каркас страницы ----------
 
-def head(title, desc, path, index):
+def head(title, desc, path, index, schema=(), og_type="website"):
     robots = "" if index else '<meta name="robots" content="noindex, follow">\n'
+    url = f"{SITE['base_url']}{path}"
+    img = f"{SITE['base_url']}/assets/img/og.png"
+    blocks = "".join(ld(x) for x in (org_ld(), *schema))
     return f"""<!doctype html>
 <html lang="ru">
 <head>
@@ -105,10 +185,27 @@ def head(title, desc, path, index):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
-{robots}<link rel="canonical" href="{SITE['base_url']}{path}">
+{robots}<link rel="canonical" href="{url}">
+<meta property="og:type" content="{og_type}">
+<meta property="og:site_name" content="{e(SITE['name'])}">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="{e(title)}">
+<meta property="og:description" content="{e(desc)}">
+<meta property="og:url" content="{url}">
+<meta property="og:image" content="{img}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{e(title)}">
+<meta name="twitter:description" content="{e(desc)}">
+<meta name="twitter:image" content="{img}">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/golos-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css?v={VER}">
 <meta name="theme-color" content="#1c3a8e">
+{blocks}
 </head>
 <body>
 <a class="skip" href="#main">К содержанию</a>
@@ -138,7 +235,7 @@ def footer():
     for chunk in (core[:half], core[half:]):
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
-                + '<li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/podryadchikam/">Подрядчикам</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
+                + '<li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/podryadchikam/">Подрядчикам</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
@@ -221,6 +318,7 @@ def lead_form(selected_key=None):
         <li>{icon('check')}Сравниваете предложения, а не обзваниваете компании</li>
         <li>{icon('check')}Телефон получают только подходящие мастера</li>
       </ul>
+      <p class="lead__area">Принимаем заявки из Екатеринбурга и пригородов: {e(", ".join(AREA[1:]))}.</p>
     </div>
     <form class="form" novalidate data-form>
       <div class="form__grid">
@@ -294,21 +392,31 @@ def section_page(section, sub=None):
     related = '<section class="related" aria-labelledby="rel-h"><h2 id="rel-h">Другие постройки из дерева</h2><ul>' + "".join(
         f'<li><a href="{s["url"]}">{e(s["name"])}{icon("arrow")}</a></li>' for s in others) + "</ul></section>"
     article = f'<section class="article" aria-label="Как выбрать">{md(text)}</section>' if text else ""
+    faq = FAQ.get(path, [])
+    arts = [a for a in ARTICLES if a["section"] == section["key"]][:6]
+    read = ('<section class="related" aria-labelledby="art-h"><h2 id="art-h">Статьи по теме</h2><ul>' + "".join(
+        f'<li><a href="{a["url"]}">{e(a["h1"])}{icon("arrow")}</a></li>' for a in arts) + "</ul></section>") if arts else ""
     trail = [("Главная", "/"), (section["name"], section["url"])] + ([(name, path)] if sub else [])
     priced = any(i.get("price_from") for i in items)
     if seo:
-        title = seo[1].replace("{цены}", ", цены" if priced else "") + f" | {SITE['name']}"
+        title = fit_title(seo[1].replace("{цены}", ", цены" if priced else ""))
         desc = seo[2]
     else:
-        title = f"{h1} — объекты и мастера | {SITE['name']}"
+        title = fit_title(f"{h1} — объекты и мастера")
         desc = lead
-    body = f"""{head(title, desc, path, index)}{header()}
+    schema = [crumbs_ld(trail), {"@context": "https://schema.org", "@type": "Service", "name": h1, "serviceType": name,
+              "url": SITE["base_url"] + path, "provider": {"@id": ORG_ID},
+              "areaServed": [{"@type": "City", "name": c} for c in AREA]}]
+    if faq:
+        schema.append(faq_ld(faq))
+    body = f"""{head(title, desc, path, index, schema)}{header()}
 <main id="main">
   <div class="page">
     {crumbs(trail)}
     <div class="intro">
       <h1>{e(h1)}</h1>
       <p class="intro__lead">{e(lead)}</p>
+      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a>{tel_link()}</p>
     </div>
     {tabs_html}
     <section class="board" aria-label="Объявления">{count}{grid}</section>
@@ -316,6 +424,9 @@ def section_page(section, sub=None):
   {lead_form(section['key'])}
   <div class="page">
     {article}
+    {faq_block(faq)}
+    <p class="cta-line">Не нашли ответ или хотите смету? <a href="#zayavka">Оставьте заявку</a> — мастера ответят сами.</p>
+    {read}
     {related}
   </div>
 </main>
@@ -339,8 +450,8 @@ def home_page():
         dirs.append(f'<li class="dir__item"><a class="dir__head" href="{s["url"]}">{e(s["name"])}</a>{f"<ul>{subs}</ul>" if subs else ""}</li>')
     core = "".join(d for d, s in zip(dirs, SECTIONS) if s["core"])
     ext = "".join(d for d, s in zip(dirs, SECTIONS) if not s["core"])
-    body = f"""{head(f"Деревянные постройки под ключ в Екатеринбурге — мастера и сданные объекты | {SITE['name']}",
-                 "Беседки, бани, навесы, террасы, хозблоки и другие деревянные постройки от подрядчиков Екатеринбурга: сданные объекты с параметрами и одна заявка нескольким мастерам.",
+    body = f"""{head("Деревянные постройки под ключ в Екатеринбурге — мастера",
+                 "Бани, беседки, навесы, террасы и хозблоки под ключ от подрядчиков Екатеринбурга и области. Одна заявка — несколько смет от мастеров, сравните и выберите.",
                  "/", True)}{header()}
 <main id="main">
   <div class="page">
@@ -371,7 +482,7 @@ def home_page():
 
 
 def simple_page(path, title, h1, html_body, index=True):
-    body = f"""{head(f"{title} | {SITE['name']}", title, path, index)}{header()}
+    body = f"""{head(fit_title(title), title, path, index, [crumbs_ld([("Главная", "/"), (h1, path)])])}{header()}
 <main id="main"><div class="page">{crumbs([("Главная", "/"), (h1, path)])}
 <div class="intro"><h1>{e(h1)}</h1></div>
 <section class="article">{html_body}</section></div>
@@ -408,10 +519,11 @@ def norms_page():
 
     trs = "".join(f'<tr><th scope="row">{name_cell(n)}</th>' + "".join(f"<td>{e(n[k])}</td>" for k, _ in N.COLUMNS) + "</tr>"
                   for n in N.NORMS)
-    title = "Где поставить баню, хозблок, туалет на участке: расстояния по СП 53.13330"
+    title = "Расстояния от бани, туалета и хозблока до забора и дома"
     desc = ("Сколько метров от границы соседа и от дома до бани, хозблока, туалета, душа, беседки и гаража. "
-            "Расстояния по СП 53.13330.2019 для садовых участков.")
-    body = f"""{head(f"{title} | {SITE['name']}", desc, NORMS_PATH, True)}{header()}
+            "Нормы СП 53.13330.2019 для садовых участков и СНТ в таблице.")
+    trail = [("Главная", "/"), ("Где поставить постройку", NORMS_PATH)]
+    body = f"""{head(fit_title(title), desc, NORMS_PATH, True, [crumbs_ld(trail), faq_ld(N.FAQ)])}{header()}
 <main id="main">
   <div class="page">
     {crumbs([("Главная", "/"), ("Где поставить постройку", NORMS_PATH)])}
@@ -435,6 +547,7 @@ def norms_page():
         <li>Охранные зоны: газ, линии электропередачи, водоохранная зона у реки или озера.</li>
         <li>Договорённость с соседом. Если постройку ставят ближе нормы, согласие соседа лучше оформить письменно.</li>
       </ul>
+      {faq_block(N.FAQ).replace('<section class="faq"', '<div class="faq"').replace('</section>', '</div>')}
       <p>Таблица — справка, а не юридическое заключение. Если сомневаетесь, уточните в администрации или правлении СНТ до начала работ. Мастер на замере тоже подскажет, где постройка встанет без споров с соседями.</p>
     </section>
   </div>
@@ -442,6 +555,83 @@ def norms_page():
 </main>
 {footer()}"""
     write(NORMS_PATH, body)
+
+
+MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
+
+
+def ru_date(d):
+    y, m, dd = d.split("-")
+    return f"{int(dd)} {MONTHS[int(m) - 1]} {y}"
+
+
+def article_page(a):
+    section = BY_KEY[a["section"]]
+    toc = []
+    body_html = md(a["body"], toc)
+    trail = [("Главная", "/"), ("Статьи", "/stati/"), (a["h1"], a["url"])]
+    author = SITE.get("author")
+    by = e(author["name"]) if author else f"Редакция «{e(SITE['name'])}»"
+    dates = f'Опубликовано <time datetime="{a["published"]}">{ru_date(a["published"])}</time>'
+    if a.get("updated") and a["updated"] != a["published"]:
+        dates += f' · обновлено <time datetime="{a["updated"]}">{ru_date(a["updated"])}</time>'
+    toc_html = ('<nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">Содержание</h2><ol>' + "".join(
+        f'<li><a href="#{i}">{inline(t)}</a></li>' for i, t in toc) + "</ol></nav>") if len(toc) > 2 else ""
+    more = [x for x in ARTICLES if x["section"] == a["section"] and x is not a][:4]
+    more_html = ('<section class="related" aria-labelledby="more-h"><h2 id="more-h">Ещё по теме</h2><ul>' + "".join(
+        f'<li><a href="{x["url"]}">{e(x["h1"])}{icon("arrow")}</a></li>' for x in more) + "</ul></section>") if more else ""
+    art_ld = {"@context": "https://schema.org", "@type": "Article", "headline": a["h1"], "description": a["desc"],
+              "datePublished": a["published"], "dateModified": a.get("updated") or a["published"],
+              "author": {"@type": "Person", "name": author["name"]} if author else {"@id": ORG_ID},
+              "publisher": {"@id": ORG_ID}, "image": SITE["base_url"] + "/assets/img/og.png",
+              "mainEntityOfPage": SITE["base_url"] + a["url"], "inLanguage": "ru"}
+    schema = [crumbs_ld(trail), art_ld] + ([faq_ld(a["faq"])] if a.get("faq") else [])
+    body = f"""{head(fit_title(a["title"]), a["desc"], a["url"], True, schema, "article")}{header()}
+<main id="main">
+  <article class="page post">
+    {crumbs(trail)}
+    <header class="intro">
+      <h1>{e(a["h1"])}</h1>
+      <p class="intro__lead">{inline(a["lead"])}</p>
+      <p class="byline">{by} · {dates}</p>
+    </header>
+    {toc_html}
+    <div class="article article--post">{body_html}</div>
+    <aside class="hand" aria-label="Заказать у мастеров">
+      <h2>Не хотите строить сами?</h2>
+      <p>В разделе «<a href="{section["url"]}">{e(section["name"])}</a>» — мастера Екатеринбурга и области. Опишите задачу один раз, и подходящие подрядчики пришлют сметы.</p>
+      <p><a class="btn btn--frame" href="#zayavka">Оставить заявку</a></p>
+    </aside>
+    <div class="article article--post">{faq_block(a.get("faq"))}</div>
+    <p class="totop"><a href="#main">Наверх ↑</a></p>
+    {more_html}
+  </article>
+  {lead_form(a["section"])}
+</main>
+{footer()}"""
+    write(a["url"], body)
+
+
+def articles_hub():
+    groups = []
+    for s in SECTIONS:
+        arts = [a for a in ARTICLES if a["section"] == s["key"]]
+        if arts:
+            groups.append(f'<h2>{e(s["name"])}</h2><ul class="hub">' + "".join(
+                f'<li><a href="{a["url"]}">{e(a["h1"])}</a><span>{e(a["desc"])}</span></li>' for a in arts) + "</ul>")
+    trail = [("Главная", "/"), ("Статьи", "/stati/")]
+    title = "Статьи о деревянных постройках на даче: бани, беседки"
+    desc = ("Как выбрать и построить баню, беседку, навес, веранду, каркасный дом и сарай: размеры, фундамент, крыша, "
+            "проекты и нормы. Справочник для дачи в Екатеринбурге.")
+    body = f"""{head(fit_title(title), desc, "/stati/", True, [crumbs_ld(trail)])}{header()}
+<main id="main"><div class="page">{crumbs(trail)}
+<div class="intro"><h1>Статьи о деревянных постройках</h1>
+<p class="intro__lead">Как выбрать, спроектировать и построить постройку для участка. В каждой статье — ссылка на мастеров, если строить самим не хочется.</p></div>
+<section class="article">{"".join(groups)}</section></div>
+{lead_form()}
+</main>
+{footer()}"""
+    write("/stati/", body)
 
 
 def contractors_page():
@@ -491,13 +681,19 @@ def main():
                 indexable.append(p)
     norms_page()
     indexable.append(NORMS_PATH)
+    if ARTICLES:
+        articles_hub()
+        indexable.append("/stati/")
+        for a in ARTICLES:
+            article_page(a)
+            indexable.append(a["url"])
     contractors_page()
     policy_page()
     not_found()
     urls = "".join(f"<url><loc>{SITE['base_url']}{p}</loc></url>" for p in indexable)
     (ROOT / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', encoding="utf-8")
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 

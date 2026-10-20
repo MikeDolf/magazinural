@@ -1,7 +1,9 @@
 """Тексты разделов. Ключ — адрес страницы. Раздел без текста и без объявлений
 собирается с noindex и не попадает в sitemap.
 
-Разметка: абзацы через пустую строку, `## ` — подзаголовок, `- ` — пункт списка.
+Разметка: абзацы через пустую строку, `## `/`### ` — подзаголовки, `- ` — пункт списка,
+`1. ` — нумерованный список, `**жирный**`, `[анкор](/url/)`. FAQ — список пар (вопрос, ответ).
+Требования к текстам — docs/on-page-seo.md.
 Цены, сроки и обещания здесь не пишем: их называют подрядчики в объявлениях.
 """
 
@@ -43,8 +45,18 @@ TEXTS = {
 }
 
 # Тексты по семействам разделов лежат в отдельных файлах.
-from data import texts_bani, texts_core, texts_more  # noqa: E402
+# Модули data/texts_*.py подключаются автоматически, по алфавиту: более поздний перекрывает ранний.
+import importlib  # noqa: E402
+import pkgutil  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-for _m in (texts_bani, texts_core, texts_more):
-    LEADS.update(_m.LEADS)
-    TEXTS.update(_m.TEXTS)
+FAQ = {}
+SEO_OVERRIDES = {}
+
+for _i in sorted(pkgutil.iter_modules([str(Path(__file__).parent)]), key=lambda m: m.name):
+    if _i.name.startswith("texts_"):
+        _m = importlib.import_module(f"data.{_i.name}")
+        LEADS.update(getattr(_m, "LEADS", {}))
+        TEXTS.update(getattr(_m, "TEXTS", {}))
+        FAQ.update(getattr(_m, "FAQ", {}))
+        SEO_OVERRIDES.update(getattr(_m, "SEO", {}))

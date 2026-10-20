@@ -70,7 +70,7 @@ p { margin: 0; }
 /* ---------- кнопки ---------- */
 .btn {
   display: inline-flex; align-items: center; gap: 0.5em;
-  min-height: 46px; padding: 0 1.15em;
+  min-height: 48px; padding: 0 1.15em;
   border-radius: var(--r); border: 1.5px solid transparent;
   font-family: inherit; font-size: 0.98rem; font-weight: 600; line-height: 1; white-space: nowrap; text-decoration: none; cursor: pointer;
   transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
@@ -277,8 +277,8 @@ p { margin: 0; }
 .foot__brand { display: grid; gap: 14px; align-content: start; }
 .logo--foot { color: var(--frame-ink); margin: 0; }
 .foot__cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-.foot ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; align-content: start; }
-.foot a { color: var(--frame-ink-2); text-decoration: none; }
+.foot ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; align-content: start; }
+.foot a { display: inline-block; padding: 8px 0; min-height: 40px; color: var(--frame-ink-2); text-decoration: none; }
 .foot a:hover { color: var(--frame-ink); text-decoration: underline; }
 @media (max-width: 860px) {
   .foot__in { grid-template-columns: 1fr; }
@@ -325,3 +325,39 @@ button, input, select, textarea { font-family: inherit; }
 .norms__table tbody th { font-weight: 500; }
 @media (max-width: 760px) { .norms { grid-template-columns: 1fr; } }
 .spot[hidden] { display: none; }
+
+/* ---------- статьи, FAQ, призывы ---------- */
+.intro__cta { margin-top: 18px; }
+.lead__area { margin-top: 16px; font-size: 0.92rem; color: var(--frame-ink-2); max-width: 32rem; }
+.article a { color: var(--frame); text-underline-offset: 3px; }
+.article h3 { margin: 24px 0 8px; font-size: 1.12rem; }
+.article ol { padding-left: 1.4em; margin: 10px 0; display: grid; gap: 8px; }
+.article ol li::marker { color: var(--frame); font-weight: 650; }
+.article b { font-weight: 650; }
+.faq { max-width: 44rem; padding: 40px 0 0; }
+.faq__item { border-top: 1px solid var(--rule); padding: 16px 0; }
+.faq__item:last-child { border-bottom: 1px solid var(--rule); }
+.faq__item h3 { font-size: 1.05rem; margin: 0 0 6px; }
+.faq__item p { color: var(--ink); line-height: 1.6; }
+.cta-line { max-width: 44rem; margin-top: 28px; padding: 14px 16px; border-left: 3px solid var(--frame); background: var(--frame-soft); }
+.cta-line a { color: var(--frame); font-weight: 600; }
+.byline { margin-top: 14px; font-size: 0.9rem; color: var(--ink-3); }
+.toc { max-width: 44rem; border: 1px solid var(--rule-strong); border-radius: var(--r); background: var(--board); padding: 16px 20px; }
+.toc h2 { font-size: 1rem; margin: 0 0 8px; }
+.toc ol { margin: 0; padding-left: 1.3em; display: grid; gap: 2px; }
+.toc a { display: inline-block; padding: 6px 0; color: var(--frame); text-underline-offset: 3px; }
+.article--post { padding-top: 32px; }
+.hand { max-width: 44rem; margin-top: 40px; padding: 22px 24px; background: var(--frame); color: var(--frame-ink); border-radius: var(--r); }
+.hand h2 { color: var(--frame-ink); font-size: 1.25rem; margin-bottom: 8px; }
+.hand p { color: var(--frame-ink); }
+.hand p + p { margin-top: 14px; }
+.hand a:not(.btn) { color: var(--frame-ink); }
+.hand .btn--frame { background: var(--board); color: var(--frame-deep); }
+.totop { max-width: 44rem; margin-top: 24px; }
+.totop a { display: inline-flex; align-items: center; min-height: 48px; color: var(--frame); font-weight: 600; }
+.hub { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.hub li { padding: 12px 0; border-bottom: 1px solid var(--rule); display: grid; gap: 4px; }
+.hub a { font-weight: 600; }
+.hub span { font-size: 0.94rem; color: var(--ink-2); }
+.crumbs a, .crumbs span { display: inline-block; padding: 12px 0; }
+.crumbs ol { padding-top: 6px; }
