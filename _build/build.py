@@ -25,6 +25,7 @@ from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS
 from data.sections import SECTIONS
 from data.listings import LISTINGS, CONTRACTORS
 from data.texts import TEXTS, LEADS
+from data.seo import SEO
 
 ROOT = Path(__file__).resolve().parent.parent
 VER = "6"  # меняйте при правке css/js
@@ -261,8 +262,9 @@ def section_page(section, sub=None):
     text = TEXTS.get(path)
     index = bool(items) or bool(text)
     h1 = f"{name} под ключ в Екатеринбурге" if not sub and section["key"] not in NO_TURNKEY else f"{name} в Екатеринбурге"
-    if path == "/besedki/":
-        h1 = "Беседки под ключ в Екатеринбурге"
+    seo = SEO.get(path)
+    if seo:
+        h1 = seo[0]
     lead = LEADS.get(path) or (f"Сданные объекты мастеров Екатеринбурга и области: параметры, цена «от» и кто строил. "
                                f"Оставьте одну заявку — её получат подходящие подрядчики.")
     tabs = [("Все", section["url"], len(listings_for(section)))] + [
@@ -292,8 +294,13 @@ def section_page(section, sub=None):
         f'<li><a href="{s["url"]}">{e(s["name"])}{icon("arrow")}</a></li>' for s in others) + "</ul></section>"
     article = f'<section class="article" aria-label="Как выбрать">{md(text)}</section>' if text else ""
     trail = [("Главная", "/"), (section["name"], section["url"])] + ([(name, path)] if sub else [])
-    title = f"{h1} — объекты и мастера | {SITE['name']}"
-    desc = lead
+    priced = any(i.get("price_from") for i in items)
+    if seo:
+        title = seo[1].replace("{цены}", ", цены" if priced else "") + f" | {SITE['name']}"
+        desc = seo[2]
+    else:
+        title = f"{h1} — объекты и мастера | {SITE['name']}"
+        desc = lead
     body = f"""{head(title, desc, path, index)}{header()}
 <main id="main">
   <div class="page">

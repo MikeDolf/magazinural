@@ -10,3 +10,6 @@ semantics/
 PRODUCT.md
 DESIGN.md
 .impeccable/
+
+__pycache__/
+*.pyc

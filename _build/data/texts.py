@@ -41,3 +41,10 @@ TEXTS = {
 Мы просим подрядчиков указывать это в каждом объявлении, чтобы сравнивать можно было по фактам.
 """,
 }
+
+# Тексты по семействам разделов лежат в отдельных файлах.
+from data import texts_bani, texts_core  # noqa: E402
+
+for _m in (texts_bani, texts_core):
+    LEADS.update(_m.LEADS)
+    TEXTS.update(_m.TEXTS)

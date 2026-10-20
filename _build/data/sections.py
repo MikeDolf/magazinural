@@ -174,3 +174,9 @@ SECTIONS = [{'key': 'besedka',
            {'name': 'Бытовки на колёсах', 'url': '/bytovki/bytovki-na-kolesah/'}]},
  {'key': 'brus', 'name': 'Дома из бруса и бревна', 'url': '/doma-iz-brusa/', 'core': False, 'subs': []},
  {'key': 'sip', 'name': 'Дома из СИП-панелей', 'url': '/sip-doma/', 'core': False, 'subs': []}]
+
+# Раздел без собственной главной в семантике: весь спрос в подкатегориях.
+SECTIONS.insert(next(i for i, s in enumerate(SECTIONS) if not s["core"]), {
+    "key": "garden", "name": "Грядки, теплицы, компостеры из дерева", "url": "/gryadki-i-teplicy/", "core": True,
+    "subs": [{"name": "Высокие грядки", "url": "/gryadki-i-teplicy/vysokie-gryadki/"}],
+})
