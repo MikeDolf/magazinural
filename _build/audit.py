@@ -81,8 +81,9 @@ def check(path):
         if text_of(a).strip().lower() in {"здесь", "тут", "подробнее", "читать далее", "по ссылке", "ссылка"}:
             issues.append(f"анкор «{text_of(a).strip()}»")
     if is_section:
-        if n < 600:
-            issues.append(f"слов {n} (600+)")
+        art_n = len(words(text_of("".join(re.findall(r'<section class="article"[^>]*>(.*?)</section>', t, re.S)))))
+        if art_n < 600:
+            issues.append(f"слов в тексте без FAQ {art_n} (600+)")
         if '"Service"' not in t:
             issues.append("нет Service")
         art = "".join(re.findall(r'<section class="article"[^>]*>(.*?)</section>', t, re.S))
