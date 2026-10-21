@@ -17,6 +17,7 @@ from pathlib import Path  # noqa: E402
 
 FAQ = {}
 SEO_OVERRIDES = {}
+UPDATED = {}  # url → ГГГГ-ММ-ДД, дата последней правки текста (модуль: UPDATED или DEFAULT_UPDATED)
 
 for _i in sorted(pkgutil.iter_modules([str(Path(__file__).parent)]), key=lambda m: m.name):
     if _i.name.startswith("texts_"):
@@ -25,3 +26,6 @@ for _i in sorted(pkgutil.iter_modules([str(Path(__file__).parent)]), key=lambda 
         TEXTS.update(getattr(_m, "TEXTS", {}))
         FAQ.update(getattr(_m, "FAQ", {}))
         SEO_OVERRIDES.update(getattr(_m, "SEO", {}))
+        _d = getattr(_m, "DEFAULT_UPDATED", None)
+        UPDATED.update({u: _d for u in getattr(_m, "TEXTS", {}) if _d})
+        UPDATED.update(getattr(_m, "UPDATED", {}))

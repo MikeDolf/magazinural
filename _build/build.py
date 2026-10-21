@@ -25,13 +25,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA
 from data.sections import SECTIONS
 from data.listings import LISTINGS
-from data.texts import TEXTS, LEADS, FAQ
+from data.texts import TEXTS, LEADS, FAQ, UPDATED
 from data.articles import ARTICLES
 from data.seo import SEO
 from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "8"  # меняйте при правке css/js
+VER = "9"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -197,7 +197,7 @@ def head(title, desc, path, index, schema=(), og_type="website"):
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
-<meta name="twitter:image" content="{img}">
+<meta name="twitter:image" content="{SITE['base_url']}/assets/img/og-twitter.png">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -403,6 +403,11 @@ def section_page(section, sub=None):
               "areaServed": [{"@type": "City", "name": c} for c in AREA]}]
     if faq:
         schema.append(faq_ld(faq))
+    upd = UPDATED.get(path)
+    if upd:
+        schema.append({"@context": "https://schema.org", "@type": "WebPage", "url": SITE["base_url"] + path,
+                       "name": h1, "dateModified": upd, "inLanguage": "ru", "publisher": {"@id": ORG_ID}})
+    updated_html = f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time></p>' if upd and text else ""
     body = f"""{head(title, desc, path, index, schema)}{header()}
 <main id="main">
   <div class="page">
@@ -418,6 +423,7 @@ def section_page(section, sub=None):
   {lead_form(section['key'])}
   <div class="page">
     {article}
+    {updated_html}
     {faq_block(faq)}
     <p class="cta-line">Не нашли ответ или хотите смету? <a href="#zayavka">Оставьте заявку</a> — перезвоним и рассчитаем.</p>
     {read}
@@ -503,7 +509,7 @@ def norms_page():
         cards.append(f"""<article class="passport spot" data-norm="{n['key']}"{"" if i == 0 else " hidden"}>
   <header class="passport__bar"><span>Паспорт места</span><span class="passport__num">{e(N.SOURCE)}</span></header>
   <div class="passport__body">
-    <h3 class="passport__title">{e(n['name'])}</h3>
+    <h2 class="passport__title">{e(n['name'])}</h2>
     <table class="passport__table"><tbody>{rows}</tbody></table>
     <p class="spot__note">{e(n['note'])}</p>
     <div class="passport__foot"><a class="btn btn--frame" href="#zayavka" data-object="{e(n['name'])}">Хочу такую же</a>{link}</div>

@@ -48,7 +48,8 @@ def check(path):
         issues.append(f"description {len(desc)} (150–160)")
     if len(h1) != 1:
         issues.append(f"h1: {len(h1)}")
-    for need in ("og:title", "og:image", "twitter:card", 'rel="icon"', "apple-touch-icon", '"BreadcrumbList"', '"HomeAndConstructionBusiness"'):
+    for need in ('<html lang="ru">', '<meta charset="utf-8">', 'name="viewport"', 'rel="canonical"', "og:description", "og:url",
+                 "og:type", "twitter:image", "og:title", "og:image", "twitter:card", 'rel="icon"', "apple-touch-icon", '"BreadcrumbList"', '"HomeAndConstructionBusiness"'):
         if need not in t and not (path == "/" and need == '"BreadcrumbList"'):
             issues.append(f"нет {need}")
     if h1:
@@ -63,11 +64,47 @@ def check(path):
             issues.append(f"FAQ {faq_n} (4–8)")
         if faq_n and '"FAQPage"' not in t:
             issues.append("нет FAQPage")
+    # п. 3: иерархия заголовков без пропусков
+    prev = 0
+    for lvl in (int(x) for x in re.findall(r"<h([1-6])[\s>]", t)):
+        if lvl > prev + 1:
+            issues.append(f"пропуск заголовка h{prev}→h{lvl}")
+            break
+        prev = lvl
+    # п. 5: ответ FAQ — 2–4 предложения
+    for a in re.findall(r'<div class="faq__item"><h3>.*?</h3><p>(.*?)</p>', t, re.S):
+        k = len([x for x in re.split(r"(?<=[.!?…])\s+", text_of(a).strip()) if x])
+        if not 2 <= k <= 4:
+            issues.append(f"ответ FAQ {k} предл. (2–4)")
+    # п. 7: ни одного «здесь», «подробнее»
+    for a in re.findall(r"<a [^>]*>(.*?)</a>", t, re.S):
+        if text_of(a).strip().lower() in {"здесь", "тут", "подробнее", "читать далее", "по ссылке", "ссылка"}:
+            issues.append(f"анкор «{text_of(a).strip()}»")
     if is_section:
         if n < 600:
             issues.append(f"слов {n} (600+)")
         if '"Service"' not in t:
             issues.append("нет Service")
+        art = "".join(re.findall(r'<section class="article"[^>]*>(.*?)</section>', t, re.S))
+        body_links = art + "".join(re.findall(r'<section class="faq".*?</section>', t, re.S))
+        internal = set(re.findall(r'<a href="(/[^"#]*)"', body_links))
+        external = len(re.findall(r'<a href="https?://[^"]+" target="_blank" rel="noopener"', body_links))
+        if len(internal) < 3:
+            issues.append(f"внутренних ссылок в тексте {len(internal)} (3–5)")
+        if not any(u.startswith("/stati/") for u in internal):
+            issues.append("нет ссылки на статью")
+        if not 2 <= external <= 3:
+            issues.append(f"внешних ссылок {external} (2–3)")
+        if "<b>" not in art:
+            issues.append("нет выделенных ключевых фраз")
+        elif art.count("<b>") > 6:
+            issues.append(f"жирного {art.count('<b>')} (умеренно, до 6)")
+        if "<ul>" not in art and "<ol>" not in art:
+            issues.append("нет списков")
+        if '<p class="updated">' not in t:
+            issues.append("нет даты обновления")
+        if t.count('href="#zayavka"') < 3:
+            issues.append("меньше 3 призывов к заявке")
     if is_post:
         if n < 1500:
             issues.append(f"слов {n} (1500+)")
