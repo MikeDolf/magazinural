@@ -180,3 +180,19 @@ SECTIONS.insert(next(i for i, s in enumerate(SECTIONS) if not s["core"]), {
     "key": "garden", "name": "Грядки, теплицы, компостеры из дерева", "url": "/gryadki-i-teplicy/", "core": True,
     "subs": [{"name": "Высокие грядки", "url": "/gryadki-i-teplicy/vysokie-gryadki/"}],
 })
+
+# Подкатегории из семантики, которые не попали в генерацию (низкий приоритет D или раздел добавлен вручную).
+_EXTRA = [
+    ("/besedki/", "Беседки с летней кухней и хозблоком", "/besedki/s-letney-kuhney-i-hozblokom/"),
+    ("/dachnye-tualety/", "Туалеты с душем", "/dachnye-tualety/tualety-s-dushem/"),
+    ("/dachnye-domiki/", "Дачные домики по размерам", "/dachnye-domiki/po-razmeram/"),
+    ("/dachnye-domiki/", "Гостевые дома", "/dachnye-domiki/gostevye-doma/"),
+    ("/gryadki-i-teplicy/", "Теплицы и парники из дерева", "/gryadki-i-teplicy/teplicy-i-parniki-iz-dereva/"),
+    ("/gryadki-i-teplicy/", "Компостеры", "/gryadki-i-teplicy/kompostery/"),
+    ("/mini-doma/", "Мини-дома на колёсах", "/mini-doma/mini-doma-na-kolesah/"),
+    ("/detskie-ploshchadki/", "Турники и спортивные комплексы", "/detskie-ploshchadki/turniki-i-sportivnye-kompleksy/"),
+]
+for _parent, _name, _url in _EXTRA:
+    _s = next(s for s in SECTIONS if s["url"] == _parent)
+    if all(x["url"] != _url for x in _s["subs"]):
+        _s["subs"].append({"name": _name, "url": _url})
