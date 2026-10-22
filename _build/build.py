@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA
 from data.sections import SECTIONS
 from data.listings import LISTINGS
-from data.texts import TEXTS, LEADS, FAQ, UPDATED
+from data.texts import TEXTS, LEADS, FAQ, UPDATED, GEO
 from data.articles import ARTICLES
 from data.seo import SEO
 from data import norms as N
@@ -348,10 +348,20 @@ def listings_for(section, sub_url=None):
     return items
 
 
-def section_page(section, sub=None):
+def geo_block(section, path):
+    """Ссылки на гео-страницы раздела: «Где строим»."""
+    geo = [(u, c) for u, (k, c) in GEO.items() if k == section["key"] and u != path]
+    if not geo:
+        return ""
+    return ('<section class="related" aria-labelledby="geo-h"><h2 id="geo-h">' + e(cap(section["name"])) + ' в пригородах Екатеринбурга</h2><ul>'
+            + "".join(f'<li><a href="{u}">{e(SEO.get(u, (c,))[0])}{icon("arrow")}</a></li>' for u, c in geo) + "</ul></section>")
+
+
+def section_page(section, sub=None, city=None):
+    """Раздел, подкатегория или гео-страница раздела (city — город из data/texts_geo_*.py)."""
     path = sub["url"] if sub else section["url"]
     name = sub["name"] if sub else section["name"]
-    items = listings_for(section, sub["url"] if sub else None)
+    items = listings_for(section, None if city else (sub["url"] if sub else None))
     text = TEXTS.get(path)
     index = bool(items) or bool(text)
     h1 = f"{name} под ключ в Екатеринбурге" if not sub and section["key"] not in NO_TURNKEY else f"{name} в Екатеринбурге"
@@ -400,7 +410,7 @@ def section_page(section, sub=None):
         desc = lead
     schema = [crumbs_ld(trail), {"@context": "https://schema.org", "@type": "Service", "name": h1, "serviceType": name,
               "url": SITE["base_url"] + path, "provider": {"@id": ORG_ID},
-              "areaServed": [{"@type": "City", "name": c} for c in AREA]}]
+              "areaServed": [{"@type": "City", "name": c} for c in ([city] if city else AREA)]}]
     if faq:
         schema.append(faq_ld(faq))
     upd = UPDATED.get(path)
@@ -426,6 +436,7 @@ def section_page(section, sub=None):
     {updated_html}
     {faq_block(faq)}
     <p class="cta-line">Не нашли ответ или хотите смету? <a href="#zayavka">Оставьте заявку</a> — перезвоним и рассчитаем.</p>
+    {geo_block(section, path)}
     {read}
     {related}
   </div>
@@ -444,13 +455,21 @@ def home_page():
     ext = "".join(d for d, s in zip(dirs, SECTIONS) if not s["core"])
     home_lead = (f"«{e(SITE['name'])}» строит бани, беседки, навесы, террасы, хозблоки и каркасные дома для участка в Екатеринбурге "
                  "и пригородах. Приедем на замер, подготовим проект и смету, построим под ключ.")
-    body = f"""{head("Деревянные постройки под ключ в Екатеринбурге | Магазин Урал",
-                 "Строим бани, беседки, навесы, террасы и хозблоки под ключ в Екатеринбурге и области: замер, проект, смета, договор. Оставьте заявку — рассчитаем смету.",
-                 "/", True)}{header()}
+    seo = SEO.get("/")
+    title = seo[1] if seo else "Деревянные постройки под ключ в Екатеринбурге | Магазин Урал"
+    desc = seo[2] if seo else ("Строим бани, беседки, навесы, террасы и хозблоки под ключ в Екатеринбурге и области: "
+                               "замер, проект, смета, договор. Оставьте заявку — рассчитаем смету.")
+    text, faq, upd = TEXTS.get("/"), FAQ.get("/", []), UPDATED.get("/")
+    home_text = f'<section class="article" aria-label="О деревянных постройках">{md(text)}</section>' if text else ""
+    if upd and text:
+        home_text += f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time></p>'
+    home_text += faq_block(faq)
+    schema = [faq_ld(faq)] if faq else []
+    body = f"""{head(fit_title(title) if seo else title, desc, "/", True, schema)}{header()}
 <main id="main">
   <div class="page">
     <div class="intro intro--home">
-      <h1>Деревянные постройки под ключ в Екатеринбурге</h1>
+      <h1>{e(seo[0]) if seo else "Деревянные постройки под ключ в Екатеринбурге"}</h1>
       <p class="intro__lead">{home_lead}</p>
       <p><a class="btn btn--frame" href="#zayavka">Рассчитать смету</a> <a class="btn btn--ghost" href="#razdely">Что строим</a></p>
     </div>
@@ -468,6 +487,7 @@ def home_page():
       <h3 class="dir__sub">Дома и большие постройки</h3>
       <ul class="dir__list">{ext}</ul>
     </section>
+    {home_text}
     <section class="related useful" aria-labelledby="use-h">
       <h2 id="use-h">Перед стройкой</h2>
       <ul>
@@ -698,6 +718,10 @@ def main():
             p, ok = section_page(s, sub)
             if ok:
                 indexable.append(p)
+    for url, (key, city) in GEO.items():
+        p, ok = section_page(BY_KEY[key], {"name": f'{BY_KEY[key]["name"]} — {city}', "url": url}, city)
+        if ok:
+            indexable.append(p)
     norms_page()
     indexable.append(NORMS_PATH)
     if ARTICLES:

@@ -84,7 +84,7 @@ def check(path):
         art_n = len(words(text_of("".join(re.findall(r'<section class="article"[^>]*>(.*?)</section>', t, re.S)))))
         if art_n < 600:
             issues.append(f"слов в тексте без FAQ {art_n} (600+)")
-        if '"Service"' not in t:
+        if '"Service"' not in t and path != "/":
             issues.append("нет Service")
         art = "".join(re.findall(r'<section class="article"[^>]*>(.*?)</section>', t, re.S))
         body_links = art + "".join(re.findall(r'<section class="faq".*?</section>', t, re.S))
@@ -120,6 +120,12 @@ def check(path):
             issues.append(f"внешних ссылок {external} (2–3)")
         if 'class="toc"' not in t:
             issues.append("нет оглавления")
+        if not re.search(r'<a href="/(?!stati/)[^"#]+/"', art):
+            issues.append("нет ссылки в каталог")
+        if "<b>" not in art:
+            issues.append("нет выделенных ключевых фраз")
+        if "<ul>" not in art and "<ol>" not in art:
+            issues.append("нет списков")
     paras = re.findall(r"<p>(.*?)</p>", own, re.S)
     long_p = sum(1 for p in paras if len(re.findall(r"[.!?…](?:\s|$)", text_of(p))) > 4)
     if long_p:

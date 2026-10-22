@@ -17,6 +17,7 @@ from pathlib import Path  # noqa: E402
 
 FAQ = {}
 SEO_OVERRIDES = {}
+GEO = {}  # url гео-страницы → (ключ раздела, город); из модулей texts_geo_*.py
 UPDATED = {}  # url → ГГГГ-ММ-ДД, дата последней правки текста (модуль: UPDATED или DEFAULT_UPDATED)
 
 for _i in sorted(pkgutil.iter_modules([str(Path(__file__).parent)]), key=lambda m: m.name):
@@ -29,3 +30,4 @@ for _i in sorted(pkgutil.iter_modules([str(Path(__file__).parent)]), key=lambda 
         _d = getattr(_m, "DEFAULT_UPDATED", None)
         UPDATED.update({u: _d for u in getattr(_m, "TEXTS", {}) if _d})
         UPDATED.update(getattr(_m, "UPDATED", {}))
+        GEO.update(getattr(_m, "GEO", {}))
