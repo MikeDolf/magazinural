@@ -40,7 +40,12 @@ document.addEventListener("click", (ev) => {
   const a = ev.target.closest("[data-object]");
   if (!a) return;
   const note = document.querySelector("[data-form] textarea[name=note]");
-  if (note && !note.value) note.value = `Как объект «${a.dataset.object}»`;
+  if (!note) return;
+  // Подставляем, если поле пустое или заполнено нами же раньше; текст, который человек написал сам, не трогаем.
+  if (!note.value || note.dataset.auto === note.value) {
+    note.value = `Как объект «${a.dataset.object}»`;
+    note.dataset.auto = note.value;
+  }
 });
 
 // Меню разделов: на широком экране всегда раскрыто, на узком — закрывается по клику вне и по Esc.

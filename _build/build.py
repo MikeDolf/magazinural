@@ -31,7 +31,7 @@ from data.seo import SEO
 from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "9"  # меняйте при правке css/js
+VER = "10"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -90,6 +90,11 @@ def md(text, toc=None):
             continue
         flush()
         kind = None
+        if block.startswith("#") and len(lines) > 1:  # заголовок без пустой строки после него
+            block, rest = lines[0], "\n".join(lines[1:])
+            out.append(md(block, toc) if toc is not None else md(block))
+            out.append(md(rest))
+            continue
         if block.startswith("### "):
             out.append(f"<h3>{inline(block[4:])}</h3>")
         elif block.startswith("## "):
@@ -211,7 +216,8 @@ def head(title, desc, path, index, schema=(), og_type="website"):
 """
 
 
-def header():
+def header(cta="#zayavka"):
+    """cta — куда ведёт кнопка заявки: на форму этой страницы или, если формы нет, на форму главной."""
     links = "".join(f'<li><a href="{BY_KEY[k]["url"]}">{e(BY_KEY[k]["name"])}</a></li>' for k in HEADER_SECTIONS if k in BY_KEY)
     return f"""<header class="top">
   <div class="top__in">
@@ -220,7 +226,7 @@ def header():
       <summary class="nav__toggle" aria-label="Разделы">{icon('menu')}<span class="nav__label">Разделы</span></summary>
       <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li></ul></nav>
     </details>
-    <a class="btn btn--enamel top__cta" href="#zayavka"><span class="top__cta-long">Оставить заявку</span><span class="top__cta-short">Заявка</span></a>
+    <a class="btn btn--enamel top__cta" href="{cta}"><span class="top__cta-long">Оставить заявку</span><span class="top__cta-short">Заявка</span></a>
   </div>
 </header>
 """
@@ -363,7 +369,7 @@ def section_page(section, sub=None, city=None):
     name = sub["name"] if sub else section["name"]
     items = listings_for(section, None if city else (sub["url"] if sub else None))
     text = TEXTS.get(path)
-    index = bool(items) or bool(text)
+    index = bool(text) if city else (bool(items) or bool(text))
     h1 = f"{name} под ключ в Екатеринбурге" if not sub and section["key"] not in NO_TURNKEY else f"{name} в Екатеринбурге"
     seo = SEO.get(path)
     if seo:
@@ -503,12 +509,12 @@ def home_page():
     write("/", body)
 
 
-def simple_page(path, title, h1, html_body, index=True, desc=None):
-    body = f"""{head(fit_title(title), desc or title, path, index, [crumbs_ld([("Главная", "/"), (h1, path)])])}{header()}
+def simple_page(path, title, h1, html_body, index=True, desc=None, form=True):
+    body = f"""{head(fit_title(title), desc or title, path, index, [crumbs_ld([("Главная", "/"), (h1, path)])])}{header("#zayavka" if form else "/#zayavka")}
 <main id="main"><div class="page">{crumbs([("Главная", "/"), (h1, path)])}
 <div class="intro"><h1>{e(h1)}</h1></div>
 <section class="article">{html_body}</section></div>
-{lead_form() if path == "/o-kompanii/" else ""}
+{lead_form() if form else ""}
 </main>
 {footer()}"""
     write(path, body)
@@ -695,11 +701,11 @@ def about_page():
 def policy_page():
     simple_page("/politika-konfidencialnosti/", "Политика конфиденциальности", "Политика конфиденциальности",
                 "<p>Политика обработки персональных данных будет опубликована здесь до запуска приёма заявок, вместе с реквизитами оператора.</p>",
-                index=False)
+                index=False, form=False)
 
 
 def not_found():
-    body = f"""{head(f"Страница не найдена | {SITE['name']}", "Страница не найдена", "/404.html", False)}{header()}
+    body = f"""{head(f"Страница не найдена | {SITE['name']}", "Страница не найдена", "/404.html", False)}{header("/#zayavka")}
 <main id="main"><div class="page"><div class="intro"><h1>Такой страницы нет</h1>
 <p class="intro__lead">Возможно, она переехала. Выберите постройку в каталоге.</p>
 <p><a class="btn btn--frame" href="/#razdely">Все постройки</a></p></div></div></main>

@@ -104,15 +104,19 @@ def check(path):
             issues.append("нет списков")
         if '<p class="updated">' not in t:
             issues.append("нет даты обновления")
-        if t.count('href="#zayavka"') < 3:
-            issues.append("меньше 3 призывов к заявке")
+        main_html = t[t.find('<main'):t.find('</main>')]
+        if main_html.count('href="#zayavka"') < 2:
+            issues.append("меньше 2 призывов к заявке внутри страницы (кроме шапки)")
     if is_post:
-        body_n = len(words(text_of("".join(re.findall(r'<div class="article article--post">(.*?)</div>', t, re.S)[:1]))))
+        m_body = re.search(r'<div class="article article--post">(.*?)</div>\s*<aside class="hand"', t, re.S)
+        body_n = len(words(text_of(m_body.group(1) if m_body else "")))
         if body_n < 1500:
             issues.append(f"слов в статье без лида и FAQ {body_n} (1500+)")
         if '"Article"' not in t:
             issues.append("нет Article")
-        art = "".join(re.findall(r'<div class="article article--post">(.*?)</div>', t, re.S))
+        # тело статьи — первый блок article--post, до врезки «Не хотите строить сами?» (FAQ идёт после неё)
+        m_art = re.search(r'<div class="article article--post">(.*?)</div>\s*<aside class="hand"', t, re.S)
+        art = m_art.group(1) if m_art else ""
         internal = len(re.findall(r'<a href="/', art))
         external = len(re.findall(r'<a href="https?://[^"]+" target="_blank" rel="noopener"', art))
         if internal < 3:

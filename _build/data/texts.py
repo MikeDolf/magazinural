@@ -28,6 +28,7 @@ for _i in sorted(pkgutil.iter_modules([str(Path(__file__).parent)]), key=lambda 
         FAQ.update(getattr(_m, "FAQ", {}))
         SEO_OVERRIDES.update(getattr(_m, "SEO", {}))
         _d = getattr(_m, "DEFAULT_UPDATED", None)
-        UPDATED.update({u: _d for u in getattr(_m, "TEXTS", {}) if _d})
+        _urls = set(getattr(_m, "TEXTS", {})) | set(getattr(_m, "FAQ", {})) | set(getattr(_m, "SEO", {}))
+        UPDATED.update({u: _d for u in _urls if _d})
         UPDATED.update(getattr(_m, "UPDATED", {}))
         GEO.update(getattr(_m, "GEO", {}))

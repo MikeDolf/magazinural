@@ -20,3 +20,7 @@ for _m in sorted(pkgutil.iter_modules([str(Path(__file__).parent)]), key=lambda 
         ARTICLES.extend(importlib.import_module(f"data.{_m.name}").ARTICLES)
 for _a in ARTICLES:
     _a["url"] = f"/stati/{_a['slug']}/"
+
+_dups = {a["slug"] for a in ARTICLES if sum(b["slug"] == a["slug"] for b in ARTICLES) > 1}
+if _dups:
+    raise SystemExit(f"Дубли slug статей: {sorted(_dups)}")
