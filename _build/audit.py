@@ -107,8 +107,9 @@ def check(path):
         if t.count('href="#zayavka"') < 3:
             issues.append("меньше 3 призывов к заявке")
     if is_post:
-        if n < 1500:
-            issues.append(f"слов {n} (1500+)")
+        body_n = len(words(text_of("".join(re.findall(r'<div class="article article--post">(.*?)</div>', t, re.S)[:1]))))
+        if body_n < 1500:
+            issues.append(f"слов в статье без лида и FAQ {body_n} (1500+)")
         if '"Article"' not in t:
             issues.append("нет Article")
         art = "".join(re.findall(r'<div class="article article--post">(.*?)</div>', t, re.S))
