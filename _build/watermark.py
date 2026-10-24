@@ -40,10 +40,18 @@ def main():
         c = CLEAN / f.name
         if not c.exists():
             shutil.copy2(f, c)
-        out = mark(Image.open(c))
-        for q in (84, 80, 76, 72, 68, 64, 60):
-            b = io.BytesIO()
-            out.save(b, "WEBP", quality=q, method=6)
+        src = Image.open(c)
+        for side in (None, 1400, 1200, 1000):  # не влезло в 200 КБ — уменьшаем
+            img = src
+            if side and max(src.size) > side:
+                img = src.copy()
+                img.thumbnail((side, side), Image.LANCZOS)
+            out = mark(img)
+            for q in (84, 80, 76, 72, 68, 64, 60):
+                b = io.BytesIO()
+                out.save(b, "WEBP", quality=q, method=6)
+                if b.tell() <= 198000:
+                    break
             if b.tell() <= 198000:
                 break
         f.write_bytes(b.getvalue())
