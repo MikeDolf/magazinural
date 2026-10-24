@@ -31,11 +31,11 @@ from data.texts import TEXTS, LEADS, FAQ, UPDATED, GEO
 from data.articles import ARTICLES
 from data.seo import SEO
 from data import norms as N
-from data.sizes import SIZES
+from data.sizes import SIZES, PRICES as SIZE_PRICES
 from data import objects_text as OT
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "28"  # меняйте при правке css/js
+VER = "29"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -522,12 +522,15 @@ def sizes_block(section):
     sizes = SIZES.get(section["key"])
     if not sizes:
         return ""
+    prices = SIZE_PRICES.get(section["key"], {})
+    note = ("Цены «от» — за базовую комплектацию, точную смету считаем после замера. Строим и по вашим размерам." if prices
+            else "Строим и по вашим размерам. Выберите ближайший — подставим его в заявку и рассчитаем смету.")
     cards = "".join(
         f'<li class="size"><p class="size__dim">{e(dim)}</p><h3 class="size__t">{e(t)}</h3><p class="size__fit">{e(fit)}</p>'
-        f'<a class="btn btn--ghost" href="#zayavka" data-size="{e(dim)}">Рассчитать {e(dim.split(" м")[0])}</a></li>' for dim, t, fit in sizes)
+        + (f'<p class="size__price">от <b>{rub(prices[dim])}</b></p>' if dim in prices else "")
+        + f'<a class="btn btn--ghost" href="#zayavka" data-size="{e(dim)}">Рассчитать {e(dim.split(" м")[0])}</a></li>' for dim, t, fit in sizes)
     return (f'<section class="sizes" aria-labelledby="sizes-h"><h2 id="sizes-h">Популярные размеры</h2>'
-            f'<p class="sizes__note">Строим и по вашим размерам. Выберите ближайший — подставим его в заявку и рассчитаем смету.</p>'
-            f'<ul class="sizes__list">{cards}</ul></section>')
+            f'<p class="sizes__note">{note}</p><ul class="sizes__list">{cards}</ul></section>')
 
 
 def section_page(section, sub=None, city=None):
@@ -871,7 +874,7 @@ def object_page(item):
         if v:
             rows.append(f'<tr><th scope="row">{label}</th><td>{e(v)}</td></tr>')
     price = item.get("price_from")
-    price_html = f'<p class="obj__price">Цена похожего объекта — от <b>{rub(price)}</b></p>' if price else ""
+    price_html = f'<p class="obj__price">Цена такой постройки — от <b>{rub(price)}</b></p>' if price else ""
     same = [x for x in LISTINGS if x["section"] == key and x is not item and x.get("photos")]
     sub_set = set(item.get("subs", []))
     same.sort(key=lambda x: -len(sub_set & set(x.get("subs", []))))
@@ -902,7 +905,7 @@ def object_page(item):
 
 ## Сколько стоит такая постройка
 
-{OT.PRICE.get(key, "Цену считаем по вашим размерам и материалам.")} Смету по позициям присылаем после замера, итог фиксируем в договоре, гарантия — {COMPANY["warranty"]}.
+""" + (f"Постройка такого типа у нас — от {rub(price)} за базовую комплектацию. " if price else "") + f"""{OT.PRICE.get(key, "Цену считаем по вашим размерам и материалам.")} Смету по позициям присылаем после замера, итог фиксируем в договоре, гарантия — {COMPANY["warranty"]}.
 """ + (f"\nКак выбрать размер и что учесть заранее — в статье [«{art['h1']}»]({art['url']}).\n" if art else "") + f"""
 ## Как ухаживать за постройкой
 
@@ -924,7 +927,7 @@ def object_page(item):
       <div class="obj__gallery">{gallery}</div>
       <article class="passport obj__passport"><header class="passport__bar"><span>Паспорт объекта</span><span class="passport__num">№ {e(item["id"])}</span></header>
         <div class="passport__body"><table class="passport__table"><tbody>{''.join(rows)}</tbody></table>
-        <p class="passport__note">Цену рассчитаем по вашим размерам</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Рассчитать такую же</a></div></article>
+        <p class="passport__note">{f'Цена от <b>{rub(price)}</b> — точную смету считаем после замера' if price else 'Цену рассчитаем по вашим размерам'}</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Рассчитать такую же</a></div></article>
     </div>
     <section class="article obj__text">{md(text)}</section>
     {howto_block()}

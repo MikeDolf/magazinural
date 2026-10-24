@@ -535,3 +535,7 @@ h2{letter-spacing:-0.015em}
 .works h2 { margin-top: 32px; }
 .passport__note { color: var(--ink-3); font-size: .92rem; margin: 10px 0 8px; }
 .obj__passport .btn { width: 100%; justify-content: center; }
+.size__price { font-size: 1rem; color: var(--ink-2); margin: 2px 0 0; }
+.size__price b { color: var(--accent); font-size: 1.1rem; }
+.intro .obj__price { color: var(--frame-ink-2); margin: 6px 0 0; }
+.intro .obj__price b { color: var(--honey); font-size: 1.25rem; }
