@@ -31,9 +31,10 @@ from data.texts import TEXTS, LEADS, FAQ, UPDATED, GEO
 from data.articles import ARTICLES
 from data.seo import SEO
 from data import norms as N
+from data.sizes import SIZES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "17"  # меняйте при правке css/js
+VER = "18"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -153,11 +154,6 @@ def faq_block(items):
         return ""
     qa = "".join(f'<div class="faq__item"><h3>{e(q)}</h3><p>{inline(a)}</p></div>' for q, a in items)
     return f'<section class="faq" aria-labelledby="faq-h"><h2 id="faq-h">Частые вопросы</h2>{qa}</section>'
-
-
-def tel_link():
-    ph = SITE.get("phone")
-    return f' <a class="btn btn--ghost" href="tel:{re.sub(r"[^+0-9]", "", ph)}">{e(ph)}</a>' if ph else ""
 
 
 def fit_len(base, tails, lo, hi):
@@ -287,7 +283,7 @@ CONTACTS_PATH = "/kontakty/"
 
 
 def has_contacts():
-    return bool(SITE.get("phone") or SITE.get("ip"))
+    return bool(SITE.get("phone") or SITE.get("ip") or SITE.get("telegram") or SITE.get("whatsapp") or SITE.get("max"))
 
 
 def contacts_block():
@@ -297,6 +293,16 @@ def contacts_block():
     rows = []
     if SITE.get("phone"):
         rows.append(f'<a class="foot__phone" href="tel:{re.sub(r"[^+0-9]", "", SITE["phone"])}">{e(SITE["phone"])}</a>')
+    msg = []
+    if SITE.get("telegram"):
+        tg = SITE["telegram"]
+        msg.append(f'<a href="{e(tg if tg.startswith("http") else "https://t.me/" + tg.lstrip("@"))}" target="_blank" rel="noopener">Telegram</a>')
+    if SITE.get("whatsapp"):
+        msg.append(f'<a href="https://wa.me/{re.sub(r"[^0-9]", "", SITE["whatsapp"])}" target="_blank" rel="noopener">WhatsApp</a>')
+    if SITE.get("max"):
+        msg.append(f'<a href="{e(SITE["max"])}" target="_blank" rel="noopener">MAX</a>')
+    if msg:
+        rows.append('<span class="foot__msg">Написать: ' + " · ".join(msg) + "</span>")
     if SITE.get("hours"):
         rows.append(f"<span>{e(SITE['hours'])}</span>")
     if SITE.get("email"):
@@ -454,6 +460,19 @@ def geo_block(section, path):
             + "".join(f'<li><a href="{u}">{e(SEO.get(u, (c,))[0])}{icon("arrow")}</a></li>' for u, c in geo) + "</ul></section>")
 
 
+def sizes_block(section):
+    """Популярные размеры под H1 раздела: карточка ведёт в заявку с подставленным размером (без цен)."""
+    sizes = SIZES.get(section["key"])
+    if not sizes:
+        return ""
+    cards = "".join(
+        f'<li class="size"><p class="size__dim">{e(dim)}</p><h3 class="size__t">{e(t)}</h3><p class="size__fit">{e(fit)}</p>'
+        f'<a class="btn btn--ghost" href="#zayavka" data-size="{e(dim)}">Рассчитать {e(dim.split(" м")[0])}</a></li>' for dim, t, fit in sizes)
+    return (f'<section class="sizes" aria-labelledby="sizes-h"><h2 id="sizes-h">Популярные размеры</h2>'
+            f'<p class="sizes__note">Строим и по вашим размерам. Выберите ближайший — подставим его в заявку и рассчитаем смету.</p>'
+            f'<ul class="sizes__list">{cards}</ul></section>')
+
+
 def section_page(section, sub=None, city=None):
     """Раздел, подкатегория или гео-страница раздела (city — город из data/texts_geo_*.py)."""
     path = sub["url"] if sub else section["url"]
@@ -473,7 +492,7 @@ def section_page(section, sub=None, city=None):
     tabs_html = ""
     if section["subs"]:
         tabs_html = '<nav class="tabs" aria-label="Подкатегории"><ul>' + "".join(
-            f'<li><a href="{u}"{" aria-current=page" if u == path else ""}>{e(t)} <span class="tabs__n">{n}</span></a></li>'
+            f'<li><a href="{u}"{" aria-current=page" if u == path else ""}>{e(t)}{f' <span class="tabs__n">{n}</span>' if n else ""}</a></li>'
             for t, u, n in tabs) + "</ul></nav>"
     if items:
         grid = '<div class="grid">' + "".join(passport(i) for i in items) + "</div>"
@@ -523,9 +542,10 @@ def section_page(section, sub=None, city=None):
     <div class="intro">
       <h1>{e(h1)}</h1>
       <p class="intro__lead">{e(lead)}</p>
-      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a>{tel_link()}</p>
+      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p>
     </div>
     {tabs_html}
+    {sizes_block(section) if not sub and not city else ""}
     <section class="board" aria-label="Объявления">{count}{grid}</section>
   </div>
   {lead_form(section['key'])}

@@ -48,6 +48,17 @@ document.addEventListener("click", (ev) => {
   }
 });
 
+// «Рассчитать 3×4» в популярных размерах: подставляем размер в форму, если человек не вписал свой.
+document.addEventListener("click", (ev) => {
+  const a = ev.target.closest("[data-size]");
+  if (!a) return;
+  const size = document.querySelector("[data-form] input[name=size]");
+  if (size && (!size.value || size.dataset.auto === size.value)) {
+    size.value = a.dataset.size;
+    size.dataset.auto = size.value;
+  }
+});
+
 // Меню разделов: на широком экране всегда раскрыто, на узком — закрывается по клику вне и по Esc.
 const nav = document.querySelector(".nav");
 if (nav) {

@@ -13,6 +13,10 @@ SITE = {
     "email": None,        # "info@magazinural.ru"
     "hours": None,        # "Пн–Сб 9:00–20:00"
     "ip": None,           # {"name": "Фамилия Имя Отчество", "inn": "...", "ogrnip": "...", "address": "г. Екатеринбург, ..."}
+    # Мессенджеры — тоже только в подвале, рядом с телефоном.
+    "telegram": None,     # "magazinural" (имя без @) или ссылка https://t.me/...
+    "whatsapp": None,     # "+7 900 000-00-00"
+    "max": None,          # ссылка на чат в MAX
     "author": None,       # {"name": ..., "about": ...}
 }
 
