@@ -34,7 +34,7 @@ from data import norms as N
 from data.sizes import SIZES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "18"  # меняйте при правке css/js
+VER = "19"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -205,7 +205,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">{f'<meta name="form-endpoint" content="{e(SITE["form_endpoint"])}">' if SITE.get("form_endpoint") else ""}
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
 {robots}<link rel="canonical" href="{url}">
@@ -322,7 +322,7 @@ def contacts_block():
 
 
 def callback_dialog():
-    """«Перезвоните мне»: имя и телефон. Отправка подключается вместе с формой заявки."""
+    """«Перезвоните мне»: имя и телефон. Отправка — та же, что у формы заявки (SITE["form_endpoint"])."""
     return f"""<dialog class="callback" id="callback" aria-labelledby="callback-h">
   <form class="form callback__form" method="dialog" novalidate data-form data-callback-form>
     <div class="callback__head"><h2 id="callback-h">Перезвоним вам</h2>
@@ -331,6 +331,7 @@ def callback_dialog():
     <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
     <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="cb-phone-err"><em class="field__err" id="cb-phone-err" hidden>Укажите телефон, чтобы мы могли перезвонить</em></label>
     <input type="hidden" name="type" value="Обратный звонок">
+    <label class="hp" aria-hidden="true">Не заполняйте <input name="website" tabindex="-1" autocomplete="off"></label>
     <label class="agree"><input type="checkbox" name="agree" required> <span>Согласен на обработку персональных данных по <a href="/politika-konfidencialnosti/">политике</a></span></label>
     <div class="form__actions"><button class="btn btn--frame" type="submit">Перезвоните мне</button>
       <p class="form__status" role="status" aria-live="polite" hidden></p></div>
@@ -427,6 +428,7 @@ def lead_form(selected_key=None):
         <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
         <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="phone-err"><em class="field__err" id="phone-err" hidden>Укажите телефон, чтобы мы могли перезвонить</em></label>
       </div>
+      <label class="hp" aria-hidden="true">Не заполняйте <input name="website" tabindex="-1" autocomplete="off"></label>
       <label class="agree"><input type="checkbox" name="agree" required> <span>Согласен на обработку персональных данных по <a href="/politika-konfidencialnosti/">политике</a></span></label>
       <div class="form__actions"><button class="btn btn--frame" type="submit">Отправить заявку {icon('arrow')}</button>
         <p class="form__status" role="status" aria-live="polite" hidden></p></div>
@@ -998,7 +1000,7 @@ def main():
     (ROOT / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', encoding="utf-8")
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
-    (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
+    (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
     total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + has_contacts()
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 

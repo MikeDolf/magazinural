@@ -25,7 +25,7 @@
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/golos-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css?v=18">
+<link rel="stylesheet" href="/assets/css/site.css?v=19">
 <meta name="theme-color" content="#1c3a8e">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HomeAndConstructionBusiness", "@id": "https://magazinural.ru/#org", "name": "Магазин Урал", "url": "https://magazinural.ru/", "logo": "https://magazinural.ru/assets/img/logo-512.png", "areaServed": "Екатеринбург и Свердловская область"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Главная", "item": "https://magazinural.ru/"}, {"@type": "ListItem", "position": 2, "name": "О компании", "item": "https://magazinural.ru/o-kompanii/"}]}</script>
 </head>
@@ -75,6 +75,7 @@
         <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
         <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="phone-err"><em class="field__err" id="phone-err" hidden>Укажите телефон, чтобы мы могли перезвонить</em></label>
       </div>
+      <label class="hp" aria-hidden="true">Не заполняйте <input name="website" tabindex="-1" autocomplete="off"></label>
       <label class="agree"><input type="checkbox" name="agree" required> <span>Согласен на обработку персональных данных по <a href="/politika-konfidencialnosti/">политике</a></span></label>
       <div class="form__actions"><button class="btn btn--frame" type="submit">Отправить заявку <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         <p class="form__status" role="status" aria-live="polite" hidden></p></div>
@@ -99,11 +100,12 @@
     <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
     <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="cb-phone-err"><em class="field__err" id="cb-phone-err" hidden>Укажите телефон, чтобы мы могли перезвонить</em></label>
     <input type="hidden" name="type" value="Обратный звонок">
+    <label class="hp" aria-hidden="true">Не заполняйте <input name="website" tabindex="-1" autocomplete="off"></label>
     <label class="agree"><input type="checkbox" name="agree" required> <span>Согласен на обработку персональных данных по <a href="/politika-konfidencialnosti/">политике</a></span></label>
     <div class="form__actions"><button class="btn btn--frame" type="submit">Перезвоните мне</button>
       <p class="form__status" role="status" aria-live="polite" hidden></p></div>
   </form>
 </dialog>
-<script src="/assets/js/site.js?v=18" defer></script>
+<script src="/assets/js/site.js?v=19" defer></script>
 </body>
 </html>

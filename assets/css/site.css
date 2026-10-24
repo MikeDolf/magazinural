@@ -447,3 +447,6 @@ button, input, select, textarea { font-family: inherit; }
 .size__t { font-size: 1rem; margin: 0; }
 .size__fit { color: var(--ink-2); font-size: 0.95rem; flex: 1; }
 .size .btn { align-self: flex-start; margin-top: 4px; }
+
+/* ловушка для ботов в формах */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }

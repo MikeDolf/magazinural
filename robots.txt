@@ -1,4 +1,5 @@
 User-agent: *
 Disallow: /_build/
 Disallow: /docs/
+Disallow: /workers/
 Sitemap: https://magazinural.ru/sitemap.xml

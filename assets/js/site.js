@@ -1,4 +1,7 @@
-// Форма заявки: проверка полей. Отправка ещё не подключена — говорим об этом честно.
+// Форма заявки и «Перезвоните мне»: проверка полей и отправка на Worker из <meta name="form-endpoint">.
+// Пока адреса нет, честно пишем, что приём не подключён.
+const endpoint = (document.querySelector('meta[name="form-endpoint"]') || {}).content;
+
 document.querySelectorAll("[data-form]").forEach((form) => {
   const phone = form.elements.phone;
   const agree = form.elements.agree;
@@ -31,7 +34,27 @@ document.querySelectorAll("[data-form]").forEach((form) => {
     }
     status.hidden = false;
     status.classList.remove("is-ok");
-    status.textContent = "Приём заявок подключим перед запуском сайта. Сейчас заявка никуда не отправлена.";
+    if (!endpoint) {
+      status.textContent = "Приём заявок подключим перед запуском сайта. Сейчас заявка никуда не отправлена.";
+      return;
+    }
+    const data = Object.fromEntries([...new FormData(form)].filter(([k]) => k !== "agree"));
+    data.page = location.href;
+    data.title = document.title;
+    const btn = form.querySelector("[type=submit]");
+    btn.disabled = true;
+    status.textContent = "Отправляем…";
+    fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+      .then((r) => { if (!r.ok) throw new Error(r.status); })
+      .then(() => {
+        status.classList.add("is-ok");
+        status.textContent = "Заявка отправлена. Перезвоним в рабочее время.";
+        form.reset();
+        const dlg = form.closest("dialog");
+        if (dlg) setTimeout(() => dlg.close(), 2500);
+      })
+      .catch(() => { status.textContent = "Не получилось отправить. Проверьте интернет и попробуйте ещё раз."; })
+      .finally(() => { btn.disabled = false; });
   });
 });
 

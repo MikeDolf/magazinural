@@ -17,6 +17,9 @@ SITE = {
     "telegram": None,     # "magazinural" (имя без @) или ссылка https://t.me/...
     "whatsapp": None,     # "+7 900 000-00-00"
     "max": None,          # ссылка на чат в MAX
+    # Адрес Cloudflare Worker, который пересылает заявки в Telegram (docs/zayavki-telegram.md).
+    # Пока None, форма проверяет поля и честно пишет, что приём не подключён.
+    "form_endpoint": None,  # "https://zayavki.<ваш-аккаунт>.workers.dev"
     "author": None,       # {"name": ..., "about": ...}
 }
 
