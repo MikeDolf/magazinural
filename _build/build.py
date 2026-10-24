@@ -31,7 +31,7 @@ from data.seo import SEO
 from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "13"  # меняйте при правке css/js
+VER = "14"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -177,10 +177,10 @@ LOGO = ('<svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true">'
 
 # ---------- каркас страницы ----------
 
-def head(title, desc, path, index, schema=(), og_type="website"):
+def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
     robots = "" if index else '<meta name="robots" content="noindex, follow">\n'
     url = f"{SITE['base_url']}{path}"
-    img = f"{SITE['base_url']}/assets/img/og.png"
+    img = SITE["base_url"] + (og_img or "/assets/img/og.png")
     blocks = "".join(ld(x) for x in (org_ld(), *schema))
     return f"""<!doctype html>
 <html lang="ru">
@@ -202,7 +202,7 @@ def head(title, desc, path, index, schema=(), og_type="website"):
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
-<meta name="twitter:image" content="{SITE['base_url']}/assets/img/og-twitter.png">
+<meta name="twitter:image" content="{img if og_img else SITE['base_url'] + '/assets/img/og-twitter.png'}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -605,16 +605,20 @@ def article_page(a):
         dates += f' · обновлено <time datetime="{a["updated"]}">{ru_date(a["updated"])}</time>'
     toc_html = ('<nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">Содержание</h2><ol>' + "".join(
         f'<li><a href="#{i}">{e(t.replace("**", ""))}</a></li>' for i, t in toc) + "</ol></nav>") if len(toc) > 2 else ""
+    cover = f"/assets/img/stati/{a['slug']}"
+    has_cover = (ROOT / cover.lstrip("/")).with_suffix(".webp").exists()
+    cover_html = (f'<img class="post__cover" src="{cover}.webp" alt="Обложка статьи «{e(a["h1"])}»" width="1200" height="630" '
+                  f'decoding="async" fetchpriority="high">') if has_cover else ""
     more = [x for x in ARTICLES if x["section"] == a["section"] and x is not a][:4]
     more_html = ('<section class="related" aria-labelledby="more-h"><h2 id="more-h">Ещё по теме</h2><ul>' + "".join(
         f'<li><a href="{x["url"]}">{e(x["h1"])}{icon("arrow")}</a></li>' for x in more) + "</ul></section>") if more else ""
     art_ld = {"@context": "https://schema.org", "@type": "Article", "headline": a["h1"], "description": a["desc"],
               "datePublished": a["published"], "dateModified": a.get("updated") or a["published"],
               "author": {"@type": "Person", "name": author["name"]} if author else {"@id": ORG_ID},
-              "publisher": {"@id": ORG_ID}, "image": SITE["base_url"] + "/assets/img/og.png",
+              "publisher": {"@id": ORG_ID}, "image": SITE["base_url"] + (cover + ".jpg" if has_cover else "/assets/img/og.png"),
               "mainEntityOfPage": SITE["base_url"] + a["url"], "inLanguage": "ru"}
     schema = [crumbs_ld(trail), art_ld] + ([faq_ld(a["faq"])] if a.get("faq") else [])
-    body = f"""{head(fit_title(a["title"]), a["desc"], a["url"], True, schema, "article")}{header()}
+    body = f"""{head(fit_title(a["title"]), a["desc"], a["url"], True, schema, "article", cover + ".jpg" if has_cover else None)}{header()}
 <main id="main">
   <article class="page post">
     {crumbs(trail)}
@@ -622,6 +626,7 @@ def article_page(a):
       <h1>{e(a["h1"])}</h1>
       <p class="intro__lead">{inline(a["lead"])}</p>
       <p class="byline">{by} · {dates}</p>
+      {cover_html}
     </header>
     {toc_html}
     <div class="article article--post">{body_html}</div>

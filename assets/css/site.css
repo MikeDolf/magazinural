@@ -389,3 +389,6 @@ button, input, select, textarea { font-family: inherit; }
   .crumbs li:last-child span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 48px; }
 }
 @media (min-width: 761px) { .toc a { padding: 5px 0; } }
+
+/* обложка статьи */
+.post__cover { display: block; width: 100%; max-width: 44rem; height: auto; aspect-ratio: 1200 / 630; margin-top: 20px; border-radius: var(--r); background: var(--frame); }

@@ -125,6 +125,11 @@ def check(path):
             issues.append(f"внешних ссылок {external} (2–3)")
         if 'class="toc"' not in t:
             issues.append("нет оглавления")
+        img = re.search(r'<img class="post__cover"[^>]*>', t)
+        if not img or 'alt="' not in img.group(0) or 'width=' not in img.group(0):
+            issues.append("нет обложки с alt и размерами")
+        if 'og:image" content="https://magazinural.ru/assets/img/og.png' in t:
+            issues.append("og:image общий, нет своей картинки")
         if not re.search(r'<a href="/(?!stati/)[^"#]+/"', art):
             issues.append("нет ссылки в каталог")
         if "<b>" not in art:
