@@ -14,23 +14,25 @@
 }
 
 :root {
-  /* рама щита «паспорт объекта»: тёплое дерево (орех) */
-  --frame: oklch(0.40 0.085 48);
-  --frame-deep: oklch(0.32 0.07 45);
-  --frame-soft: oklch(0.94 0.03 72);
-  --frame-ink: oklch(0.985 0.01 85);
-  --frame-ink-2: oklch(0.87 0.04 75);
+  /* тёмный орех (морёный дуб), коньяк и мёд */
+  --frame: oklch(0.25 0.035 55);
+  --frame-deep: oklch(0.17 0.025 50);
+  --frame-soft: oklch(0.93 0.03 70);
+  --frame-ink: oklch(0.97 0.015 85);
+  --frame-ink-2: oklch(0.85 0.05 75);
   /* эмаль досок и линейки */
-  --ground: oklch(0.965 0.014 82);
-  --board: oklch(0.993 0.006 85);
-  --rule: oklch(0.86 0.03 72);
-  --rule-strong: oklch(0.70 0.05 60);
-  --ink: oklch(0.26 0.03 50);
-  --ink-2: oklch(0.44 0.035 52);
-  --ink-3: oklch(0.48 0.035 52);
+  --ground: oklch(0.955 0.02 78);
+  --board: oklch(0.993 0.008 85);
+  --rule: oklch(0.86 0.03 70);
+  --rule-strong: oklch(0.68 0.05 60);
+  --ink: oklch(0.23 0.025 55);
+  --ink-2: oklch(0.41 0.035 55);
+  --ink-3: oklch(0.47 0.035 58);
   /* сигнальная лента — только фокус, выделение и метка «образец/новое» */
-  --signal: oklch(0.80 0.15 72);
-  --signal-deep: oklch(0.72 0.15 62);
+  --signal: oklch(0.78 0.13 68);
+  --signal-deep: oklch(0.66 0.14 58);
+  --accent: oklch(0.50 0.12 50);
+  --honey: oklch(0.82 0.12 75);
   --error: oklch(0.52 0.19 25);
 
   --r: 3px;
@@ -481,3 +483,41 @@ button, input, select, textarea { font-family: inherit; }
   .steps__panel { grid-template-columns: 1fr; gap: 6px; padding: 16px; }
   .steps__num { font-size: 3rem; }
 }
+
+/* ---------- Оформление «тёмный орех»: текстура _build/wood.py, объём, тени ---------- */
+body{background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22240%22%20height%3D%22240%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.9%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22/%3E%3CfeColorMatrix%20values%3D%220%200%200%200%200.4%20%200%200%200%200%200.3%20%200%200%200%200%200.2%20%200%200%200%200.05%200%22/%3E%3C/filter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url%28%23n%29%22/%3E%3C/svg%3E"),linear-gradient(180deg,oklch(0.965 0.018 80),oklch(0.945 0.024 75));background-attachment:fixed}
+.top{background:linear-gradient(180deg,oklch(0.12 0.02 50/.35),oklch(0.12 0.02 50/.55)),url(/assets/img/wood.webp) center 30%/2400px auto;box-shadow:inset 0 -1px 0 oklch(0.78 0.13 68/.35),0 10px 30px -12px oklch(0.12 0.02 50/.7)}
+.intro{max-width:none;position:relative;overflow:hidden;color:var(--frame-ink);padding:clamp(32px,5vw,64px) clamp(24px,4vw,56px);border-radius:14px;margin:4px 0 26px;
+ background:radial-gradient(70% 90% at 12% 0%,oklch(0.62 0.13 62/.45),transparent 60%),linear-gradient(90deg,oklch(0.12 0.02 50/.55) 0%,oklch(0.12 0.02 50/.15) 60%,transparent 100%),radial-gradient(60% 80% at 100% 100%,oklch(0.08 0.02 50/.55),transparent 70%),url(/assets/img/wood.webp) center/cover;
+ box-shadow:inset 0 1px 0 oklch(1 0 0/.10),inset 0 -3px 0 oklch(0.78 0.13 68/.55),0 2px 4px oklch(0.15 0.02 50/.25),0 30px 60px -30px oklch(0.15 0.03 50/.8)}
+.intro h1{color:oklch(0.98 0.02 85);font-size:clamp(2rem,4.6vw,3.4rem);letter-spacing:-0.02em;text-shadow:0 2px 18px oklch(0.1 0.02 50/.6)}
+.intro__lead,.intro p{color:var(--frame-ink-2)}
+.btn{border-radius:10px;transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn--frame{background:linear-gradient(180deg,oklch(0.56 0.13 52),oklch(0.46 0.12 48));color:#fff;border:0;box-shadow:inset 0 1px 0 oklch(1 0 0/.25),0 1px 2px oklch(0.2 0.03 50/.3),0 8px 18px -8px oklch(0.4 0.12 50/.7)}
+.intro .btn--frame{background:linear-gradient(180deg,oklch(0.86 0.12 78),oklch(0.74 0.14 64));color:oklch(0.22 0.03 50);box-shadow:inset 0 1px 0 oklch(1 0 0/.6),inset 0 -2px 0 oklch(0.55 0.12 55/.5),0 10px 24px -10px oklch(0.7 0.14 64/.8)}
+.intro .btn--ghost{color:var(--frame-ink);background:oklch(1 0 0/.06);border:1px solid oklch(1 0 0/.28);backdrop-filter:blur(4px)}
+.adv li{border:0;border-radius:12px;padding:16px 18px 16px 20px;position:relative;background:linear-gradient(180deg,oklch(0.995 0.006 85),oklch(0.975 0.014 80));box-shadow:inset 0 1px 0 #fff,0 1px 2px oklch(0.3 0.04 55/.08),0 14px 30px -18px oklch(0.3 0.06 55/.45)}
+.adv li::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:linear-gradient(180deg,var(--honey),var(--accent))}
+.tabs a{border-radius:999px;background:var(--board);box-shadow:0 1px 2px oklch(0.3 0.04 55/.08)}
+.tabs a[aria-current]{background:linear-gradient(180deg,oklch(0.30 0.04 55),var(--frame-deep));border-color:transparent;color:var(--frame-ink)}
+.size,.steps__panel{border:0;border-radius:14px;background:linear-gradient(180deg,oklch(0.997 0.005 85),oklch(0.978 0.012 80));box-shadow:inset 0 1px 0 #fff,inset 0 3px 0 var(--accent),0 1px 2px oklch(0.3 0.04 55/.08),0 18px 36px -22px oklch(0.3 0.06 55/.5);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.size:hover{transform:translateY(-3px)}
+.size__dim,.steps__num{background:linear-gradient(180deg,var(--signal),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:0}
+.size__dim{font-size:2rem}
+.steps__num{font-size:clamp(4rem,9vw,7rem)}
+.steps__tabs{border:0;border-radius:12px;box-shadow:0 1px 2px oklch(0.3 0.04 55/.1),0 10px 24px -16px oklch(0.3 0.06 55/.4);background:var(--board)}
+.steps__tab{background:transparent}
+.steps__tab[aria-selected=true]{background:linear-gradient(180deg,oklch(0.30 0.04 55),var(--frame-deep));color:var(--frame-ink);border-radius:10px;box-shadow:inset 0 -2px 0 var(--signal)}
+.steps__tab span{color:var(--accent)}.steps__tab[aria-selected=true] span{color:var(--signal)}
+.steps__result{background:linear-gradient(90deg,oklch(0.93 0.04 72),oklch(0.96 0.02 78));border-radius:10px}.steps__result b{color:var(--accent)}
+.lead{background:linear-gradient(90deg,oklch(0.14 0.02 50/.55),oklch(0.14 0.02 50/.2)),radial-gradient(60% 90% at 0% 0%,oklch(0.62 0.13 62/.3),transparent 60%),url(/assets/img/wood.webp) center/cover;box-shadow:inset 0 3px 0 oklch(0.78 0.13 68/.5)}
+.lead .form{border-radius:14px;box-shadow:0 30px 60px -30px oklch(0.05 0.02 50/.9)}
+.foot{background:linear-gradient(180deg,oklch(0.10 0.02 50/.7),oklch(0.08 0.02 50/.85)),url(/assets/img/wood.webp) center 30%/2400px auto}
+h2{letter-spacing:-0.015em}
+/* в статьях шапка светлая: обложка сама в древесных тонах */
+.post .intro { background: none; color: inherit; padding: 0; border-radius: 0; box-shadow: none; overflow: visible; margin-bottom: 0; }
+.post .intro::after { content: none; }
+.post .intro h1 { color: var(--ink); text-shadow: none; font-size: clamp(1.9rem, 4vw, 2.8rem); }
+.post .intro__lead, .post .intro p { color: var(--ink-2); }
+.post__cover { border-radius: 14px; box-shadow: 0 24px 48px -28px oklch(0.15 0.03 50 / 0.7); }
