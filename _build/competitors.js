@@ -12,7 +12,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const OUT = path.join(__dirname, '..', 'semantics', 'competitors');
-const SKIP = /(^|\.)(avito|youtube|vk|ok|dzen|pinterest|ozon|wildberries|market\.yandex|2gis|zoon|flamp|yell|profi|youdo|wikipedia|t-j|e1|drive2|forumhouse|houzz|instagram|tiktok|rutube|lemanapro|leroymerlin|petrovich|vseinstrumenti|aliexpress|sima-land)\./;
+const SKIP = /(^|\.)(avito|youtube|vk|ok|dzen|pinterest|ozon|wildberries|market\.yandex|2gis|zoon|flamp|yell|profi|youdo|wikipedia|t-j|e1|drive2|forumhouse|houzz|instagram|tiktok|rutube|lemanapro|leroymerlin|petrovich|vseinstrumenti|aliexpress|sima-land|livemaster|hoff|domclick|rg|onduline|realty\.yandex|cian|kp|ria)\./;
 
 const args = process.argv.slice(2);
 const top = Number((args[args.indexOf('--top') + 1]) || 0) || 5;
