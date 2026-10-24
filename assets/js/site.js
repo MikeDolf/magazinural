@@ -117,3 +117,25 @@ if (cb && typeof cb.showModal === "function") {
     location.hash = document.getElementById("zayavka") ? "#zayavka" : "/#zayavka";
   }));
 }
+
+// Этапы работы: вкладки с клавиатурой (стрелки), без JS все этапы видны подряд.
+document.querySelectorAll("[data-steps]").forEach((box) => {
+  const tabs = [...box.querySelectorAll("[role=tab]")];
+  const show = (i, focus) => {
+    tabs.forEach((t, n) => {
+      const on = n === i;
+      t.setAttribute("aria-selected", on);
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+    if (focus) tabs[i].focus();
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => show(i));
+    t.addEventListener("keydown", (ev) => {
+      const d = { ArrowRight: 1, ArrowLeft: -1 }[ev.key];
+      if (d) { ev.preventDefault(); show((i + d + tabs.length) % tabs.length, true); }
+    });
+  });
+  show(0);
+});

@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA, PAYMENT, DELIVERY
+from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA, PAYMENT, DELIVERY, COMPANY, ADVANTAGES, STEPS
 from data.sections import SECTIONS
 from data.listings import LISTINGS
 for _x in LISTINGS:  # путь к фото — от корня сайта, без ведущего «/»
@@ -34,7 +34,7 @@ from data import norms as N
 from data.sizes import SIZES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "19"  # меняйте при правке css/js
+VER = "20"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -134,7 +134,12 @@ def org_ld():
         if ip.get("inn"):
             org["taxID"] = ip["inn"]
         if ip.get("address"):
-            org["address"] = {"@type": "PostalAddress", "streetAddress": ip["address"], "addressCountry": "RU"}
+            org["address"] = {"@type": "PostalAddress", "streetAddress": ip["address"].replace("г. Екатеринбург, ", ""),
+                              "addressLocality": "Екатеринбург", "addressCountry": "RU"}
+    if COMPANY.get("since"):
+        org["foundingDate"] = str(COMPANY["since"])
+    if SITE.get("max"):
+        org["sameAs"] = [SITE["max"]]
     return org
 
 
@@ -302,7 +307,7 @@ def contacts_block():
     if SITE.get("max"):
         msg.append(f'<a href="{e(SITE["max"])}" target="_blank" rel="noopener">MAX</a>')
     if msg:
-        rows.append('<span class="foot__msg">Написать: ' + " · ".join(msg) + "</span>")
+        rows.append(" · ".join(msg))
     if SITE.get("hours"):
         rows.append(f"<span>{e(SITE['hours'])}</span>")
     if SITE.get("email"):
@@ -317,7 +322,7 @@ def contacts_block():
         req.append(f"ОГРНИП {e(ip['ogrnip'])}")
     if ip.get("address"):
         req.append(e(ip["address"]))
-    return (f'<div class="foot__contacts"><h2 class="foot__h">Контакты</h2>{"".join(f"<p>{r}</p>" for r in rows)}'
+    return (f'<div class="foot__contacts"><h2 class="foot__h">Контакты</h2><p>{" · ".join(rows)}</p>'
             + (f'<p class="foot__req">{" · ".join(req)}</p>' if req else "") + "</div>")
 
 
@@ -462,6 +467,29 @@ def geo_block(section, path):
             + "".join(f'<li><a href="{u}">{e(SEO.get(u, (c,))[0])}{icon("arrow")}</a></li>' for u, c in geo) + "</ul></section>")
 
 
+def advantages_block():
+    """Полоса преимуществ под первым экраном: только факты, подтверждённые владельцем (site.ADVANTAGES)."""
+    if not ADVANTAGES:
+        return ""
+    return ('<ul class="adv" aria-label="Почему с нами спокойно">' + "".join(
+        f'<li><b>{e(t)}</b><span>{e(d)}</span></li>' for t, d in ADVANTAGES) + "</ul>")
+
+
+def steps_block(hid="steps-h"):
+    """Этапы работы вкладками 01–04 (без JS видны все этапы подряд)."""
+    tabs = "".join(
+        f'<button class="steps__tab" type="button" role="tab" id="{hid}-t{n}" aria-controls="{hid}-p{n}" aria-selected="{"true" if n == 1 else "false"}"'
+        f'{"" if n == 1 else " tabindex=-1"}><span>{n:02d}.</span> {e(t)}</button>' for n, (t, _, _) in enumerate(STEPS, 1))
+    panels = "".join(
+        f'<div class="steps__panel" role="tabpanel" id="{hid}-p{n}" aria-labelledby="{hid}-t{n}">'
+        f'<p class="steps__num" aria-hidden="true">{n:02d}</p><div class="steps__body"><h3>{n:02d}. {e(t)}</h3>'
+        + "".join(f"<p>{e(x)}</p>" for x in paras)
+        + f'<p class="steps__result"><b>Итог:</b> {e(res)}</p></div></div>' for n, (t, paras, res) in enumerate(STEPS, 1))
+    return (f'<section class="steps" aria-labelledby="{hid}" data-steps><h2 id="{hid}">Этапы работы</h2>'
+            f'<div class="steps__tabs" role="tablist" aria-label="Этапы работы">{tabs}</div>{panels}'
+            f'<p class="steps__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку на консультацию</a></p></section>')
+
+
 def sizes_block(section):
     """Популярные размеры под H1 раздела: карточка ведёт в заявку с подставленным размером (без цен)."""
     sizes = SIZES.get(section["key"])
@@ -546,9 +574,11 @@ def section_page(section, sub=None, city=None):
       <p class="intro__lead">{e(lead)}</p>
       <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p>
     </div>
+    {advantages_block()}
     {tabs_html}
     {sizes_block(section) if not sub and not city else ""}
     <section class="board" aria-label="Объявления">{count}{grid}</section>
+    {steps_block()}
   </div>
   {lead_form(section['key'])}
   <div class="page">
@@ -594,14 +624,8 @@ def home_page():
       <p class="intro__lead">{home_lead}</p>
       <p><a class="btn btn--frame" href="#zayavka">Рассчитать смету</a> <a class="btn btn--ghost" href="#razdely">Что строим</a></p>
     </div>
-    <section class="how" aria-labelledby="how-h">
-      <h2 id="how-h">Как мы работаем</h2>
-      <ol class="how__list">
-        <li><b>Заявка и звонок</b><span>Вы описываете постройку, мы перезваниваем и уточняем размеры, участок и пожелания.</span></li>
-        <li><b>Замер, проект и смета</b><span>Смотрим участок, предлагаем конструкцию и считаем смету по позициям.</span></li>
-        <li><b>Договор и стройка</b><span>Фиксируем состав работ, сроки и оплату в договоре, строим и сдаём постройку.</span></li>
-      </ol>
-    </section>
+    {advantages_block()}
+    {steps_block()}
     <section class="dir" id="razdely" aria-labelledby="dir-h">
       <h2 id="dir-h">Что строим</h2>
       <ul class="dir__list">{core}</ul>
@@ -857,7 +881,9 @@ POLICY = """
 
 ## 1. Оператор
 
-Оператор персональных данных — индивидуальный предприниматель {name}, ИНН {inn}, ОГРНИП {ogrnip}{address}. Связаться с оператором можно по телефону {phone}{email}.
+Оператор персональных данных — индивидуальный предприниматель {name}, ИНН {inn}{ogrnip}{address}.
+
+Связаться с оператором можно по телефону {phone}{email}.
 
 ## 2. Какие данные мы обрабатываем
 
@@ -900,20 +926,24 @@ POLICY = """
 
 
 def about_page():
-    """О компании: только то, что верно без реквизитов. Телефон, адрес, годы и объекты — когда даст владелец."""
+    """О компании: факты со слов владельца (site.COMPANY, ADVANTAGES, STEPS) — без превосходных степеней."""
     path = "/o-kompanii/"
     area = ", ".join(AREA)
     text = md(f"""
-«{SITE['name']}» строит деревянные постройки для загородного участка: бани, беседки, навесы и карпорты, террасы и веранды, хозблоки и сараи, каркасные дома, детские площадки и малые формы. Работаем в Екатеринбурге и пригородах.
+«{SITE['name']}» проектирует и строит деревянные постройки для загородного участка с {COMPANY['since']} года: беседки, террасы и веранды, навесы, хозблоки, каркасные дома и бани, зимние деревянные горки, песочницы и детские домики. Работаем в Екатеринбурге и пригородах.
 
-## Как мы работаем
+## Кто работает над вашей постройкой
 
-1. **Заявка.** Вы оставляете заявку на сайте: что хотите построить, примерный размер, где участок.
-2. **Звонок.** Перезваниваем, уточняем назначение постройки, материалы, сроки и бюджет.
-3. **Замер.** Смотрим участок: грунт, перепады, подъезд, где встанет постройка и как её развернуть относительно дома и соседей.
-4. **Проект и смета.** Предлагаем конструкцию и считаем смету по позициям — фундамент, каркас, кровля, отделка, доставка.
-5. **Договор.** Фиксируем состав работ, материалы, сроки, порядок оплаты и гарантию до начала работ.
-6. **Строительство и сдача.** Строим, показываем результат и передаём постройку.
+- **Проектный отдел** превращает идею в 3D-проект и рабочие чертежи, считает конструкцию и материалы.
+- **Отдел продаж** помогает выбрать постройку, размер и материалы под участок и бюджет.
+- **Своё производство** заготавливает и обрабатывает дерево, изготавливает детали по проекту.
+- **Монтажные бригады** со стажем {COMPANY['crews']} собирают постройку на вашем участке.
+
+## Наши условия
+
+- Официальный договор с ИП и смета по позициям — видно, за что вы платите.
+- Гарантия на постройку — {COMPANY['warranty']}, она прописана в договоре.
+- Предварительный расчёт по заявке на сайте и каталог построек онлайн.
 
 ## Что строим
 
@@ -921,7 +951,7 @@ def about_page():
 - [Беседки](/besedki/) — открытые, закрытые, с мангалом и печью.
 - [Навесы и карпорты](/navesy/), [террасы](/terrasy/) и [веранды](/verandy/).
 - [Хозблоки](/hozbloki/), [сараи](/sarai/), [дровники](/drovniki/).
-- [Каркасные дома](/karkasnye-doma/) для дачи и постоянного проживания.
+- [Каркасные дома](/karkasnye-doma/), [горки](/gorki/), [песочницы](/pesochnicy/) и [детские домики](/detskie-domiki/).
 
 ## Где работаем
 
@@ -930,15 +960,14 @@ def about_page():
 ## Перед стройкой
 
 Проверьте, где постройка встанет по нормам: расстояния до забора, дома и колодца собраны в справочнике [«Где поставить постройку»](/gde-postavit-postroyku/).
-""")
-    simple_page(path, "О компании «Магазин Урал»: как мы строим", "О компании", text, index=True,
-                desc="«Магазин Урал» строит бани, беседки, навесы, террасы и хозблоки в Екатеринбурге и пригородах. Как мы работаем: заявка, замер, смета, договор и сдача объекта.")
-
+""") + steps_block("about-steps-h")
+    simple_page(path, f"О компании «Магазин Урал»: строим из дерева с {COMPANY['since']} года", "О компании", text, index=True,
+                desc=f"«Магазин Урал» с {COMPANY['since']} года строит беседки, бани, террасы и хозблоки в Екатеринбурге и области: свой проектный отдел, производство, договор и гарантия 3 года.")
 
 def policy_page():
     ip = SITE.get("ip")
     if ip and ip.get("name") and ip.get("inn") and SITE.get("phone"):
-        text = POLICY.format(domain=SITE["domain"], name=ip["name"], inn=ip["inn"], ogrnip=ip.get("ogrnip") or "—",
+        text = POLICY.format(domain=SITE["domain"], name=ip["name"], inn=ip["inn"], ogrnip=f", ОГРНИП {ip['ogrnip']}" if ip.get("ogrnip") else "",
                              address=f", адрес: {ip['address']}" if ip.get("address") else "", phone=SITE["phone"],
                              email=f" или по почте {SITE['email']}" if SITE.get("email") else "")
         simple_page("/politika-konfidencialnosti/", "Политика обработки персональных данных", "Политика конфиденциальности",
