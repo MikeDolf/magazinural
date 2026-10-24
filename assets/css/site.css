@@ -378,3 +378,14 @@ button, input, select, textarea { font-family: inherit; }
 .hub a { display: inline-flex; align-items: center; min-height: 48px; }
 .agree a { display: inline-block; padding: 16px 0; margin: -16px 0; }
 .updated { max-width: 44rem; margin-top: 20px; font-size: 0.9rem; color: var(--ink-3); }
+
+/* оглавление: строчный блок, чтобы выделение внутри заголовка не разбивало строку на колонки */
+.toc a { display: block; min-height: 0; padding: 13px 0; line-height: 1.35; }
+/* хлебные крошки на телефоне: одна строка, длинное название страницы обрезается многоточием (полное — в H1) */
+@media (max-width: 760px) {
+  .crumbs ol { flex-wrap: nowrap; }
+  .crumbs li { flex: none; white-space: nowrap; }
+  .crumbs li:last-child { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; }
+  .crumbs li:last-child span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 48px; }
+}
+@media (min-width: 761px) { .toc a { padding: 5px 0; } }

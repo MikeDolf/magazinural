@@ -31,7 +31,7 @@ from data.seo import SEO
 from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "10"  # меняйте при правке css/js
+VER = "13"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -604,7 +604,7 @@ def article_page(a):
     if a.get("updated") and a["updated"] != a["published"]:
         dates += f' · обновлено <time datetime="{a["updated"]}">{ru_date(a["updated"])}</time>'
     toc_html = ('<nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">Содержание</h2><ol>' + "".join(
-        f'<li><a href="#{i}">{inline(t)}</a></li>' for i, t in toc) + "</ol></nav>") if len(toc) > 2 else ""
+        f'<li><a href="#{i}">{e(t.replace("**", ""))}</a></li>' for i, t in toc) + "</ol></nav>") if len(toc) > 2 else ""
     more = [x for x in ARTICLES if x["section"] == a["section"] and x is not a][:4]
     more_html = ('<section class="related" aria-labelledby="more-h"><h2 id="more-h">Ещё по теме</h2><ul>' + "".join(
         f'<li><a href="{x["url"]}">{e(x["h1"])}{icon("arrow")}</a></li>' for x in more) + "</ul></section>") if more else ""
