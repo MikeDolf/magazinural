@@ -584,6 +584,11 @@ def section_page(section, sub=None, city=None):
               "areaServed": [{"@type": "City", "name": c} for c in ([city] if city else AREA)]}]
     if faq:
         schema.append(faq_ld(faq))
+    photo_items = [i for i in items if i.get("photos")]
+    if photo_items:
+        schema.append({"@context": "https://schema.org", "@type": "ItemList", "name": f"{h1}: наши объекты",
+                       "itemListElement": [{"@type": "ListItem", "position": n + 1, "url": SITE["base_url"] + object_url(i), "name": obj_name(i)}
+                                           for n, i in enumerate(photo_items)]})
     upd = UPDATED.get(path)
     if upd:
         schema.append({"@context": "https://schema.org", "@type": "WebPage", "url": SITE["base_url"] + path,
@@ -650,6 +655,7 @@ def home_page():
     </div>
     {advantages_block()}
     {steps_block()}
+    {('<section class="related related--cards" aria-labelledby="hw-h"><h2 id="hw-h">Наши работы</h2><ul class="ocards">' + "".join(obj_card(x) for x in [x for x in LISTINGS if x.get("photos")][:8]) + f'</ul><p class="cta-line">Все объекты с фото и паспортом — на странице «<a href="{WORKS_PATH}">Наши работы</a>».</p></section>') if any(x.get("photos") for x in LISTINGS) else ""}
     <section class="dir" id="razdely" aria-labelledby="dir-h">
       <h2 id="dir-h">Что строим</h2>
       <ul class="dir__list">{core}</ul>
@@ -830,12 +836,18 @@ def articles_hub():
     write("/stati/", body)
 
 
+def obj_name(x):
+    """Полное имя объекта для H1, title и alt: запрос из Вордстата + название («Беседка с печью «Огневушка»»)."""
+    q = re.search(r"«[^»]+»", x["title"])
+    return f'{x["kw"]} {q.group(0)}' if x.get("kw") and q else x["title"]
+
+
 def obj_card(x):
     """Карточка объекта с фото — для «Похожих объектов» и «Наших работ»."""
     ph = x["photos"][0]
     w, h = img_size(ph)
-    return (f'<li class="ocard"><a href="{object_url(x)}"><img src="/{e(ph)}" alt="{e(x["title"])} — фото объекта" width="{w}" height="{h}" loading="lazy" decoding="async">'
-            f'<span class="ocard__t">{e(x["title"])}</span><span class="ocard__d">{e(cap(x.get("lead") or ""))}</span></a></li>')
+    return (f'<li class="ocard"><a href="{object_url(x)}"><img src="/{e(ph)}" alt="{e(obj_name(x))} — фото" width="{w}" height="{h}" loading="lazy" decoding="async">'
+            f'<span class="ocard__t">{e(obj_name(x))}</span><span class="ocard__d">{e(cap(x.get("lead") or ""))}</span></a></li>')
 
 
 def object_page(item):
@@ -844,8 +856,9 @@ def object_page(item):
     key = section["key"]
     path = object_url(item)
     photos = item.get("photos") or []
+    full = obj_name(item)
     gallery = "".join(
-        f'<img src="/{e(ph)}" alt="{e(item["title"])} — {"общий вид" if n == 0 else f"фото {n + 1}"}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
+        f'<img src="/{e(ph)}" alt="{e(full)} — {"общий вид" if n == 0 else f"фото {n + 1}"}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
         f'{"fetchpriority=high" if n == 0 else "loading=lazy"} decoding="async">' for n, ph in enumerate(photos))
     rows = []
     for label, k in PASSPORT_ROWS:
@@ -861,18 +874,18 @@ def object_page(item):
     same.sort(key=lambda x: -len(sub_set & set(x.get("subs", []))))
     others = same[:3]
     subs = [s for s in section["subs"] if s["url"] in sub_set]
-    trail = [("Главная", "/"), (section["name"], section["url"])] + ([(subs[0]["name"], subs[0]["url"])] if subs else []) + [(item["title"], path)]
-    prod = {"@context": "https://schema.org", "@type": "Product", "name": item["title"], "sku": item["id"],
+    trail = [("Главная", "/"), (section["name"], section["url"])] + ([(subs[0]["name"], subs[0]["url"])] if subs else []) + [(full, path)]
+    prod = {"@context": "https://schema.org", "@type": "Product", "name": full, "sku": item["id"],
             "image": [SITE["base_url"] + "/" + ph for ph in photos], "brand": {"@id": ORG_ID},
             "category": section["name"], "description": re.sub(r"\s+", " ", item.get("description") or item["title"])[:300]}
     if price:
         prod["offers"] = {"@type": "Offer", "priceCurrency": "RUB", "price": price, "url": SITE["base_url"] + path,
                           "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock"}
-    title = fit_title(fit_len(f'{item["title"]} — наш объект', [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", ", фото и паспорт", ", фото"] + ([", цена «от»"] if item.get("price_from") else []), 50, 60))
+    title = fit_title(fit_len(full, [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", " — фото объекта", ", фото", " — наш объект"] + ([", цена «от»"] if item.get("price_from") else []), 50, 60))
     facts = ", ".join(x for x in (item.get("size"), item.get("material"), item.get("place"), item.get("built") and f'сдан {item["built"]}') if x)
     lead_txt = item.get("lead") or ""
-    desc = fit_len(f'{item["title"]}' + (f": {lead_txt}" if lead_txt else (f': {facts}.' if facts else ".")),
-                   [" Фото и паспорт объекта" + (" с ценой «от»." if item.get("price_from") else "."), " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним.", " Гарантия 3 года.", " Работаем по договору.", " Екатеринбург."], 150, 160)
+    desc = fit_len(f'{full}' + (f" — {lead_txt}" if lead_txt else (f': {facts}.' if facts else ".")),
+                   [" Фото и паспорт объекта" + (" с ценой «от»." if item.get("price_from") else "."), " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним.", " Гарантия 3 года.", " Работаем по договору.", " Екатеринбург.", " Под ключ.", " 3D-проект.", " Замер."], 150, 160)
     name_l = section["name"].lower()
     art = next((a for a in ARTICLES if a["slug"] == OT.ARTICLE.get(key)), None)
     sub_links = ", ".join(f'[{s["name"].lower()}]({s["url"]})' for s in subs)
@@ -902,7 +915,7 @@ def object_page(item):
 <main id="main">
   <div class="page">
     {crumbs(trail)}
-    <div class="intro"><h1>{e(item["title"])}</h1><p class="intro__lead">{e(cap(lead_txt))}</p>{price_html}
+    <div class="intro"><h1>{e(full)}</h1><p class="intro__lead">{e(full)} — {e(lead_txt)}</p>{price_html}
       <p class="intro__cta"><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>
     <div class="obj">
       <div class="obj__gallery">{gallery}</div>
