@@ -34,7 +34,7 @@ from data import norms as N
 from data.sizes import SIZES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "23"  # меняйте при правке css/js
+VER = "24"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -159,6 +159,28 @@ def faq_block(items):
         return ""
     qa = "".join(f'<div class="faq__item"><h3>{e(q)}</h3><p>{inline(a)}</p></div>' for q, a in items)
     return f'<section class="faq" aria-labelledby="faq-h"><h2 id="faq-h">Частые вопросы</h2>{qa}</section>'
+
+
+def img_size(path):
+    """Ширина и высота WebP/JPEG/PNG без сторонних библиотек (для width/height у <img>)."""
+    b = (ROOT / path).read_bytes()[:65536]
+    if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+        kind = b[12:16]
+        if kind == b"VP8 ":
+            return int.from_bytes(b[26:28], "little") & 0x3FFF, int.from_bytes(b[28:30], "little") & 0x3FFF
+        if kind == b"VP8L":
+            v = int.from_bytes(b[21:25], "little")
+            return (v & 0x3FFF) + 1, ((v >> 14) & 0x3FFF) + 1
+        if kind == b"VP8X":
+            return int.from_bytes(b[24:27], "little") + 1, int.from_bytes(b[27:30], "little") + 1
+    if b[:8] == b"\x89PNG\r\n\x1a\n":
+        return int.from_bytes(b[16:20], "big"), int.from_bytes(b[20:24], "big")
+    i = 2
+    while i < len(b) - 9:  # JPEG: ищем SOF0/SOF2
+        if b[i] == 0xFF and b[i + 1] in (0xC0, 0xC2):
+            return int.from_bytes(b[i + 7:i + 9], "big"), int.from_bytes(b[i + 5:i + 7], "big")
+        i += 2 + int.from_bytes(b[i + 2:i + 4], "big") if b[i] == 0xFF else 1
+    return 1200, 800
 
 
 def fit_len(base, tails, lo, hi):
@@ -380,7 +402,8 @@ def passport(item=None):
         v = item.get(k)
         if k == "contract" and v is not None:
             v = "да" if v else "нет"
-        rows.append(f'<tr><th scope="row">{label}</th><td>{e(v) if v else "<span class=blank></span>"}</td></tr>')
+        if v or sample:  # у реального объекта пустые строки не показываем
+            rows.append(f'<tr><th scope="row">{label}</th><td>{e(v) if v else "<span class=blank></span>"}</td></tr>')
     price = item.get("price_from")
     price_html = (f'<span class="passport__price-label">Цена от</span> <b>{rub(price)}</b>' if price
                   else '<span class="passport__price-label">Цена</span> <span class="passport__ask">по запросу</span>')
@@ -391,7 +414,7 @@ def passport(item=None):
         action = '<a class="btn btn--ghost" href="#zayavka">Хочу такую постройку</a>'
     else:
         src = item["photos"][0] if item.get("photos") else ""
-        figure = f'<img class="passport__photo" src="/{e(src)}" alt="{e(item["title"])}" loading="lazy" width="640" height="420">'
+        figure = f'<img class="passport__photo" src="/{e(src)}" alt="{e(item["title"])} — фото объекта" loading="lazy" width="{img_size(src)[0]}" height="{img_size(src)[1]}">'
         title = item["title"]
         action = f'<a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a>'
         if item.get("photos"):
@@ -812,7 +835,7 @@ def object_page(item):
     path = object_url(item)
     photos = item.get("photos") or []
     gallery = "".join(
-        f'<img src="/{e(ph)}" alt="{e(item["title"])} — фото {n + 1}" width="1200" height="800" '
+        f'<img src="/{e(ph)}" alt="{e(item["title"])} — фото {n + 1}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
         f'{"fetchpriority=high" if n == 0 else "loading=lazy"} decoding="async">' for n, ph in enumerate(photos))
     rows = []
     for label, k in PASSPORT_ROWS:
@@ -831,10 +854,11 @@ def object_page(item):
     if price:
         prod["offers"] = {"@type": "Offer", "priceCurrency": "RUB", "price": price, "url": SITE["base_url"] + path,
                           "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock"}
-    title = fit_title(fit_len(f'{item["title"]} — наш объект', [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", ", цена «от»"], 50, 60))
+    title = fit_title(fit_len(f'{item["title"]} — наш объект', [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", ", фото и паспорт", ", фото"] + ([", цена «от»"] if item.get("price_from") else []), 50, 60))
     facts = ", ".join(x for x in (item.get("size"), item.get("material"), item.get("place"), item.get("built") and f'сдан {item["built"]}') if x)
-    desc = fit_len(f'{item["title"]}' + (f': {facts}.' if facts else "."),
-                   [" Фото, паспорт объекта и цена «от».", " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним."], 150, 160)
+    lead_txt = item.get("lead") or ""
+    desc = fit_len(f'{item["title"]}' + (f": {lead_txt}" if lead_txt else (f': {facts}.' if facts else ".")),
+                   [" Фото и паспорт объекта" + (" с ценой «от»." if item.get("price_from") else "."), " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним.", " Гарантия 3 года.", " Работаем по договору.", " Екатеринбург."], 150, 160)
     body = f"""{head(title, desc[:160], path, True, [crumbs_ld(trail), prod], "website", "/" + photos[0])}{header()}
 <main id="main">
   <div class="page">
