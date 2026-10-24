@@ -34,7 +34,7 @@ from data import norms as N
 from data.sizes import SIZES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "20"  # меняйте при правке css/js
+VER = "21"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -234,7 +234,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/golos-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css?v={VER}">
-<meta name="theme-color" content="#1c3a8e">
+<meta name="theme-color" content="#6c381a">
 {blocks}
 </head>
 <body>
