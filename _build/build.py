@@ -31,7 +31,7 @@ from data.seo import SEO
 from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "14"  # меняйте при правке css/js
+VER = "15"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -168,11 +168,12 @@ def icon(name):
             f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{paths[name]}</svg>')
 
 
-# Знак: табличка паспорта под двускатной кровлей.
-LOGO = ('<svg class="logo__mark" viewBox="0 0 32 32" aria-hidden="true">'
-        '<path d="M3 14 16 4l13 10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/>'
-        '<rect x="7" y="15" width="18" height="13" rx="1.5" fill="currentColor"/>'
-        '<path d="M10 19.5h12M10 23.5h8" stroke="var(--frame)" stroke-width="2"/></svg>')
+# Знак: дом с двускатной крышей (тот же, что в favicon).
+LOGO = ('<svg class="logo__mark" viewBox="0 0 64 64" aria-hidden="true">'
+        '<path d="M8 31 32 11l24 20" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>'
+        '<path d="M15 29v23h34V29L32 15z" fill="currentColor"/>'
+        '<rect x="27" y="36" width="10" height="16" rx="1.5" fill="var(--frame)"/>'
+        '<rect x="40" y="34" width="5" height="5" rx="1" fill="var(--signal)"/></svg>')
 
 
 # ---------- каркас страницы ----------
@@ -203,7 +204,9 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
 <meta name="twitter:image" content="{img if og_img else SITE['base_url'] + '/assets/img/og-twitter.png'}">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-120.png" sizes="120x120" type="image/png">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/golos-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
