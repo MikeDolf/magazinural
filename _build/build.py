@@ -22,16 +22,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA
+from data.site import SITE, HEADER_SECTIONS, WHEN_OPTIONS, AREA, PAYMENT, DELIVERY
 from data.sections import SECTIONS
 from data.listings import LISTINGS
+for _x in LISTINGS:  # путь к фото — от корня сайта, без ведущего «/»
+    _x["photos"] = [p.lstrip("/") for p in _x.get("photos") or []]
 from data.texts import TEXTS, LEADS, FAQ, UPDATED, GEO
 from data.articles import ARTICLES
 from data.seo import SEO
 from data import norms as N
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "15"  # меняйте при правке css/js
+VER = "17"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -123,6 +125,15 @@ def org_ld():
            "areaServed": SITE["region"]}
     if SITE.get("phone"):
         org["telephone"] = SITE["phone"]
+    if SITE.get("email"):
+        org["email"] = SITE["email"]
+    ip = SITE.get("ip")
+    if ip:
+        org["legalName"] = f"ИП {ip['name']}"
+        if ip.get("inn"):
+            org["taxID"] = ip["inn"]
+        if ip.get("address"):
+            org["address"] = {"@type": "PostalAddress", "streetAddress": ip["address"], "addressCountry": "RU"}
     return org
 
 
@@ -149,6 +160,16 @@ def tel_link():
     return f' <a class="btn btn--ghost" href="tel:{re.sub(r"[^+0-9]", "", ph)}">{e(ph)}</a>' if ph else ""
 
 
+def fit_len(base, tails, lo, hi):
+    """Добирает к тексту хвосты, пока он не войдёт в диапазон lo–hi знаков."""
+    for t in tails:
+        if len(base) >= lo:
+            break
+        if len(base + t) <= hi:
+            base += t
+    return base
+
+
 def fit_title(t):
     """Title 50–60 знаков: бренд дописываем, только если влезает (docs/on-page-seo.md)."""
     full = f"{t} | {SITE['name']}"
@@ -162,6 +183,7 @@ def icon(name):
         "menu": '<path d="M4 7h16M4 12h16M4 17h16"/>',
         "arrow": '<path d="M5 12h14M13 6l6 6-6 6"/>',
         "check": '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+        "phone": '<path d="M6.5 3.5h3l1.5 4-2 1.3a10 10 0 0 0 5.2 5.2l1.3-2 4 1.5v3a2 2 0 0 1-2 2A15.5 15.5 0 0 1 4.5 5.5a2 2 0 0 1 2-2z"/>',
         "photo": '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/>',
     }
     return (f'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
@@ -229,6 +251,7 @@ def header(cta="#zayavka"):
       <summary class="nav__toggle" aria-label="Разделы">{icon('menu')}<span class="nav__label">Разделы</span></summary>
       <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li></ul></nav>
     </details>
+    <button class="top__call" type="button" data-callback aria-haspopup="dialog" aria-label="Перезвоните мне">{icon('phone')}<span>Перезвоните мне</span></button>
     <a class="btn btn--enamel top__cta" href="{cta}"><span class="top__cta-long">Оставить заявку</span><span class="top__cta-short">Заявка</span></a>
   </div>
 </header>
@@ -243,18 +266,81 @@ def footer():
     for chunk in (core[:half], core[half:]):
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
+                + (f'<li><a href="{CONTACTS_PATH}">Контакты</a></li>' if has_contacts() else "")
                 + '<li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
       <p>Строим бани, беседки, навесы, террасы и другие деревянные постройки для участка в Екатеринбурге и области.</p></div>
     <div class="foot__cols">{''.join(cols)}</div>
+    {contacts_block()}
   </div>
 </footer>
+{callback_dialog()}
 <script src="/assets/js/site.js?v={VER}" defer></script>
 </body>
 </html>
 """
+
+
+CONTACTS_PATH = "/kontakty/"
+
+
+def has_contacts():
+    return bool(SITE.get("phone") or SITE.get("ip"))
+
+
+def contacts_block():
+    """Контакты и реквизиты ИП в подвале — только реальные данные из site.py."""
+    if not has_contacts():
+        return ""
+    rows = []
+    if SITE.get("phone"):
+        rows.append(f'<a class="foot__phone" href="tel:{re.sub(r"[^+0-9]", "", SITE["phone"])}">{e(SITE["phone"])}</a>')
+    if SITE.get("hours"):
+        rows.append(f"<span>{e(SITE['hours'])}</span>")
+    if SITE.get("email"):
+        rows.append(f'<a href="mailto:{e(SITE["email"])}">{e(SITE["email"])}</a>')
+    ip = SITE.get("ip") or {}
+    req = []
+    if ip.get("name"):
+        req.append(f"ИП {e(ip['name'])}")
+    if ip.get("inn"):
+        req.append(f"ИНН {e(ip['inn'])}")
+    if ip.get("ogrnip"):
+        req.append(f"ОГРНИП {e(ip['ogrnip'])}")
+    if ip.get("address"):
+        req.append(e(ip["address"]))
+    return (f'<div class="foot__contacts"><h2 class="foot__h">Контакты</h2>{"".join(f"<p>{r}</p>" for r in rows)}'
+            + (f'<p class="foot__req">{" · ".join(req)}</p>' if req else "") + "</div>")
+
+
+def callback_dialog():
+    """«Перезвоните мне»: имя и телефон. Отправка подключается вместе с формой заявки."""
+    return f"""<dialog class="callback" id="callback" aria-labelledby="callback-h">
+  <form class="form callback__form" method="dialog" novalidate data-form data-callback-form>
+    <div class="callback__head"><h2 id="callback-h">Перезвоним вам</h2>
+      <button class="callback__close" type="button" data-callback-close aria-label="Закрыть">×</button></div>
+    <p>Оставьте телефон — перезвоним, ответим на вопросы и договоримся о замере.</p>
+    <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
+    <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="cb-phone-err"><em class="field__err" id="cb-phone-err" hidden>Укажите телефон, чтобы мы могли перезвонить</em></label>
+    <input type="hidden" name="type" value="Обратный звонок">
+    <label class="agree"><input type="checkbox" name="agree" required> <span>Согласен на обработку персональных данных по <a href="/politika-konfidencialnosti/">политике</a></span></label>
+    <div class="form__actions"><button class="btn btn--frame" type="submit">Перезвоните мне</button>
+      <p class="form__status" role="status" aria-live="polite" hidden></p></div>
+  </form>
+</dialog>"""
+
+
+def howto_block():
+    """«Как оплатить» и «Как получить» — тексты из data/site.py."""
+    def card(h, items):
+        return f'<div class="howto__card"><h2>{e(h)}</h2><ul>' + "".join(f"<li>{e(x)}</li>" for x in items) + "</ul></div>"
+    return f'<section class="howto" aria-label="Оплата и порядок работ">{card("Как оплатить", PAYMENT)}{card("Как получить постройку", DELIVERY)}</section>'
+
+
+def object_url(item):
+    return f'{BY_KEY[item["section"]]["url"]}obekt-{item["id"]}/'
 
 
 def crumbs(items):
@@ -296,6 +382,8 @@ def passport(item=None):
         figure = f'<img class="passport__photo" src="/{e(src)}" alt="{e(item["title"])}" loading="lazy" width="640" height="420">'
         title = item["title"]
         action = f'<a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a>'
+        if item.get("photos"):
+            action = f'<a class="btn btn--ghost" href="{object_url(item)}">Фото и паспорт объекта</a>' + action
     return f"""<article class="passport{' passport--sample' if sample else ''}">
   <header class="passport__bar"><span>Паспорт объекта</span><span class="passport__num">{num}</span></header>
   {figure}
@@ -389,7 +477,7 @@ def section_page(section, sub=None, city=None):
             for t, u, n in tabs) + "</ul></nav>"
     if items:
         grid = '<div class="grid">' + "".join(passport(i) for i in items) + "</div>"
-        count = f'<p class="board__count">На стенде {len(items)} объект(ов)</p>'
+        count = f'<h2 class="board__h">Наши объекты</h2><p class="board__count">На стенде {len(items)} объект(ов)</p>'
     else:
         grid = f"""<div class="empty">
   <div class="empty__text">
@@ -412,7 +500,8 @@ def section_page(section, sub=None, city=None):
     trail = [("Главная", "/"), (section["name"], section["url"])] + ([(name, path)] if sub else [])
     priced = any(i.get("price_from") for i in items)
     if seo:
-        title = fit_title(seo[1].replace("{цены}", ", цены" if priced else ""))
+        with_price = seo[1].replace("{цены}", ", цены")
+        title = fit_title(with_price if priced and len(with_price) <= 60 else seo[1].replace("{цены}", ""))
         desc = seo[2]
     else:
         title = fit_title(f"{h1} — цены и проекты")
@@ -443,6 +532,7 @@ def section_page(section, sub=None, city=None):
   <div class="page">
     {article}
     {updated_html}
+    {howto_block() if text else ""}
     {faq_block(faq)}
     <p class="cta-line">Не нашли ответ или хотите смету? <a href="#zayavka">Оставьте заявку</a> — перезвоним и рассчитаем.</p>
     {geo_block(section, path)}
@@ -670,6 +760,123 @@ def articles_hub():
     write("/stati/", body)
 
 
+def object_page(item):
+    """Страница сданного объекта: фото, паспорт, описание, цена «от». Только для объектов с фото."""
+    section = BY_KEY[item["section"]]
+    path = object_url(item)
+    photos = item.get("photos") or []
+    gallery = "".join(
+        f'<img src="/{e(ph)}" alt="{e(item["title"])} — фото {n + 1}" width="1200" height="800" '
+        f'{"fetchpriority=high" if n == 0 else "loading=lazy"} decoding="async">' for n, ph in enumerate(photos))
+    rows = []
+    for label, k in PASSPORT_ROWS:
+        v = item.get(k)
+        if k == "contract" and v is not None:
+            v = "да" if v else "нет"
+        if v:
+            rows.append(f'<tr><th scope="row">{label}</th><td>{e(v)}</td></tr>')
+    price = item.get("price_from")
+    price_html = f'<p class="obj__price">Цена похожего объекта — от <b>{rub(price)}</b></p>' if price else '<p class="obj__price">Цену рассчитаем по вашим размерам</p>'
+    others = [x for x in LISTINGS if x["section"] == item["section"] and x is not item and x.get("photos")][:3]
+    trail = [("Главная", "/"), (section["name"], section["url"]), (item["title"], path)]
+    prod = {"@context": "https://schema.org", "@type": "Product", "name": item["title"],
+            "image": [SITE["base_url"] + "/" + ph for ph in photos], "brand": {"@id": ORG_ID},
+            "description": (item.get("description") or item["title"])[:300]}
+    if price:
+        prod["offers"] = {"@type": "Offer", "priceCurrency": "RUB", "price": price, "url": SITE["base_url"] + path,
+                          "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock"}
+    title = fit_title(fit_len(f'{item["title"]} — наш объект', [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", ", цена «от»"], 50, 60))
+    facts = ", ".join(x for x in (item.get("size"), item.get("material"), item.get("place"), item.get("built") and f'сдан {item["built"]}') if x)
+    desc = fit_len(f'{item["title"]}' + (f': {facts}.' if facts else "."),
+                   [" Фото, паспорт объекта и цена «от».", " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним."], 150, 160)
+    body = f"""{head(title, desc[:160], path, True, [crumbs_ld(trail), prod], "website", "/" + photos[0])}{header()}
+<main id="main">
+  <div class="page">
+    {crumbs(trail)}
+    <div class="intro"><h1>{e(item["title"])}</h1>{price_html}
+      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a></p></div>
+    <div class="obj">
+      <div class="obj__gallery">{gallery}</div>
+      <article class="passport obj__passport"><header class="passport__bar"><span>Паспорт объекта</span><span class="passport__num">№ {e(item["id"])}</span></header>
+        <div class="passport__body"><table class="passport__table"><tbody>{''.join(rows)}</tbody></table></div></article>
+    </div>
+    {f'<section class="article">{md(item["description"])}</section>' if item.get("description") else ""}
+    {howto_block()}
+    {('<section class="related" aria-labelledby="oth-h"><h2 id="oth-h">Другие наши объекты</h2><ul>' + "".join(f'<li><a href="{object_url(x)}">{e(x["title"])}{icon("arrow")}</a></li>' for x in others) + "</ul></section>") if others else ""}
+    <p class="cta-line">Все постройки этого типа — в разделе «<a href="{section["url"]}">{e(section["name"])}</a>».</p>
+  </div>
+  {lead_form(section["key"])}
+</main>
+{footer()}"""
+    write(path, body)
+
+
+def contacts_page():
+    """Контакты: создаётся, только когда в site.py есть телефон или реквизиты ИП."""
+    ip = SITE.get("ip") or {}
+    parts = []
+    if SITE.get("phone"):
+        parts.append(f'<p>Телефон: <a href="tel:{re.sub(r"[^+0-9]", "", SITE["phone"])}">{e(SITE["phone"])}</a></p>')
+    if SITE.get("hours"):
+        parts.append(f"<p>Часы работы: {e(SITE['hours'])}</p>")
+    if SITE.get("email"):
+        parts.append(f'<p>Почта: <a href="mailto:{e(SITE["email"])}">{e(SITE["email"])}</a></p>')
+    if ip:
+        parts.append("<h2>Реквизиты</h2>" + "".join(f"<p>{x}</p>" for x in [
+            f"ИП {e(ip['name'])}" if ip.get("name") else "", f"ИНН {e(ip['inn'])}" if ip.get("inn") else "",
+            f"ОГРНИП {e(ip['ogrnip'])}" if ip.get("ogrnip") else "", e(ip["address"]) if ip.get("address") else ""] if x))
+    parts.append(f"<h2>Где работаем</h2><p>{e(', '.join(AREA))}.</p>")
+    simple_page(CONTACTS_PATH, "Контакты «Магазин Урал»: телефон и реквизиты", "Контакты", "".join(parts), index=True,
+                desc="Контакты компании «Магазин Урал»: телефон, часы работы и реквизиты ИП. Строим деревянные постройки в Екатеринбурге и пригородах — оставьте заявку на замер.")
+
+
+POLICY = """
+Настоящая политика определяет порядок обработки персональных данных посетителей сайта {domain} (далее — сайт) и меры по их защите в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».
+
+## 1. Оператор
+
+Оператор персональных данных — индивидуальный предприниматель {name}, ИНН {inn}, ОГРНИП {ogrnip}{address}. Связаться с оператором можно по телефону {phone}{email}.
+
+## 2. Какие данные мы обрабатываем
+
+- имя;
+- номер телефона;
+- адрес электронной почты, если вы его указали;
+- сведения о постройке и участке, которые вы сообщили в заявке (тип постройки, размер, населённый пункт, сроки, пожелания);
+- технические данные: IP-адрес, сведения о браузере и устройстве, файлы cookie, данные сервисов веб-аналитики.
+
+## 3. Цели обработки
+
+- связаться с вами по заявке или запросу обратного звонка;
+- подготовить смету, договориться о замере и заключить договор;
+- улучшать работу сайта по обезличенной статистике посещений.
+
+## 4. Правовые основания
+
+Данные обрабатываются на основании вашего согласия, которое вы даёте, отмечая согласие в форме на сайте, а также для подготовки и исполнения договора, стороной которого вы являетесь.
+
+## 5. Как мы обрабатываем данные
+
+Обработка включает сбор, запись, систематизацию, хранение, уточнение, использование, удаление и уничтожение данных. Мы не продаём данные и не передаём их третьим лицам, кроме случаев, прямо предусмотренных законом. Данные хранятся на территории Российской Федерации.
+
+## 6. Сроки хранения
+
+Данные хранятся не дольше, чем этого требуют цели обработки, или до отзыва согласия. После этого данные удаляются, если закон не требует хранить их дольше.
+
+## 7. Ваши права
+
+Вы вправе получить сведения об обработке ваших данных, потребовать их уточнения, блокирования или удаления, а также отозвать согласие, направив обращение оператору по контактам из раздела 1. Ответ дадим в сроки, установленные законом.
+
+## 8. Защита данных
+
+Оператор принимает правовые, организационные и технические меры для защиты персональных данных от неправомерного доступа, изменения, распространения и уничтожения.
+
+## 9. Изменение политики
+
+Оператор вправе изменять политику; новая редакция действует с момента публикации на этой странице.
+"""
+
+
 def about_page():
     """О компании: только то, что верно без реквизитов. Телефон, адрес, годы и объекты — когда даст владелец."""
     path = "/o-kompanii/"
@@ -707,9 +914,20 @@ def about_page():
 
 
 def policy_page():
-    simple_page("/politika-konfidencialnosti/", "Политика конфиденциальности", "Политика конфиденциальности",
-                "<p>Политика обработки персональных данных будет опубликована здесь до запуска приёма заявок, вместе с реквизитами оператора.</p>",
-                index=False, form=False)
+    ip = SITE.get("ip")
+    if ip and ip.get("name") and ip.get("inn") and SITE.get("phone"):
+        text = POLICY.format(domain=SITE["domain"], name=ip["name"], inn=ip["inn"], ogrnip=ip.get("ogrnip") or "—",
+                             address=f", адрес: {ip['address']}" if ip.get("address") else "", phone=SITE["phone"],
+                             email=f" или по почте {SITE['email']}" if SITE.get("email") else "")
+        simple_page("/politika-konfidencialnosti/", "Политика обработки персональных данных", "Политика конфиденциальности",
+                    md(text), index=True, form=False,
+                    desc=f"Политика обработки персональных данных сайта {SITE['domain']}: какие данные собираем по заявкам, зачем, как храним и как отозвать своё согласие по закону 152-ФЗ.")
+        return True
+    else:
+        simple_page("/politika-konfidencialnosti/", "Политика конфиденциальности", "Политика конфиденциальности",
+                    "<p>Политика обработки персональных данных будет опубликована здесь до запуска приёма заявок, вместе с реквизитами оператора.</p>",
+                    index=False, form=False)
+        return False
 
 
 def not_found():
@@ -736,6 +954,13 @@ def main():
         p, ok = section_page(BY_KEY[key], {"name": f'{BY_KEY[key]["name"]} — {city}', "url": url}, city)
         if ok:
             indexable.append(p)
+    for item in LISTINGS:
+        if item.get("photos"):
+            object_page(item)
+            indexable.append(object_url(item))
+    if has_contacts():
+        contacts_page()
+        indexable.append(CONTACTS_PATH)
     norms_page()
     indexable.append(NORMS_PATH)
     if ARTICLES:
@@ -746,14 +971,15 @@ def main():
             indexable.append(a["url"])
     about_page()
     indexable.append("/o-kompanii/")
-    policy_page()
+    if policy_page():
+        indexable.append("/politika-konfidencialnosti/")
     not_found()
     urls = "".join(f"<url><loc>{SITE['base_url']}{p}</loc></url>" for p in indexable)
     (ROOT / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', encoding="utf-8")
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO)
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + has_contacts()
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 

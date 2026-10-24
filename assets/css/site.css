@@ -146,6 +146,7 @@ p { margin: 0; }
 
 /* ---------- паспорт объекта: фирменный приём ---------- */
 .board { padding-bottom: 56px; }
+.board__h { font-size: 1.25rem; margin-bottom: 4px; }
 .board__count { color: var(--ink-3); font-size: 0.9rem; margin-bottom: 12px; font-variant-numeric: tabular-nums; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--gap); }
 .passport {
@@ -392,3 +393,45 @@ button, input, select, textarea { font-family: inherit; }
 
 /* обложка статьи */
 .post__cover { display: block; width: 100%; max-width: 44rem; height: auto; aspect-ratio: 1200 / 630; margin-top: 20px; border-radius: var(--r); background: var(--frame); }
+
+/* «Перезвоните мне» в шапке: на узком экране — только иконка 48×48 */
+.top__call {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 48px; min-width: 48px; justify-content: center;
+  padding: 0 12px; margin-right: 8px; border: 1.5px solid oklch(1 0 0 / 0.28); border-radius: var(--r);
+  background: transparent; color: var(--frame-ink); font: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.top__call:hover { background: oklch(1 0 0 / 0.1); }
+.top__call .i { width: 20px; height: 20px; }
+@media (max-width: 1400px) { .top__call span { display: none; } .top__call { padding: 0; } }
+
+/* диалог обратного звонка */
+.callback { border: 0; padding: 0; border-radius: var(--r); width: min(420px, calc(100% - 32px)); box-shadow: var(--shadow); }
+.callback::backdrop { background: oklch(0.2 0.05 264 / 0.55); }
+.callback__form { padding: 22px 22px 18px; display: grid; gap: 12px; }
+.callback__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.callback__head h2 { font-size: 1.3rem; margin: 0; }
+.callback__close { min-width: 48px; min-height: 48px; border: 0; background: transparent; font-size: 1.8rem; line-height: 1; color: var(--ink-2); cursor: pointer; }
+.callback p { color: var(--ink-2); }
+
+/* «Как оплатить» и «Как получить» */
+.howto { max-width: 44rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 32px; }
+.howto__card { background: var(--board); border: 1px solid var(--rule); border-top: 3px solid var(--frame); border-radius: var(--r); padding: 18px 20px; }
+.howto__card h2 { font-size: 1.12rem; margin: 0 0 10px; }
+.howto__card ul { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; }
+.howto__card li { line-height: 1.5; }
+.howto__card li::marker { color: var(--frame); }
+
+/* страница объекта */
+.obj { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.obj__gallery { display: grid; gap: 12px; }
+.obj__gallery img { width: 100%; height: auto; border-radius: var(--r); background: var(--frame-soft); }
+.obj__price { font-size: 1.15rem; margin-top: 8px; }
+.obj__price b { color: var(--frame-deep); }
+@media (max-width: 760px) { .obj { grid-template-columns: 1fr; } }
+
+/* контакты и реквизиты в подвале */
+.foot__contacts { grid-column: 1 / -1; border-top: 1px solid oklch(1 0 0 / 0.18); padding-top: 18px; margin-top: 8px; color: var(--frame-ink-2); }
+.foot__h { font-size: 1rem; color: var(--frame-ink); margin: 0 0 8px; }
+.foot__contacts p { margin: 4px 0; }
+.foot__phone { font-size: 1.25rem; font-weight: 700; color: var(--frame-ink) !important; }
+.foot__req { font-size: 0.88rem; }

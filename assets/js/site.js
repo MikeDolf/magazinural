@@ -67,3 +67,19 @@ document.querySelectorAll(".norms").forEach((box) => {
     cards.forEach((c) => { c.hidden = c.dataset.norm !== ev.target.value; });
   });
 });
+
+// «Перезвоните мне»: диалог с короткой формой. Проверку и честный статус даёт общий обработчик форм выше.
+const cb = document.getElementById("callback");
+if (cb && typeof cb.showModal === "function") {
+  document.querySelectorAll("[data-callback]").forEach((b) => b.addEventListener("click", () => {
+    cb.showModal();
+    cb.querySelector("input[name=name]").focus();
+  }));
+  cb.querySelector("[data-callback-close]").addEventListener("click", () => cb.close());
+  cb.addEventListener("click", (ev) => { if (ev.target === cb) cb.close(); });
+} else {
+  // Старые браузеры без <dialog>: ведём к основной форме заявки.
+  document.querySelectorAll("[data-callback]").forEach((b) => b.addEventListener("click", () => {
+    location.hash = document.getElementById("zayavka") ? "#zayavka" : "/#zayavka";
+  }));
+}
