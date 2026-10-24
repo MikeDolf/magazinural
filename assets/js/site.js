@@ -1,6 +1,15 @@
 // Форма заявки и «Перезвоните мне»: проверка полей и отправка на Worker из <meta name="form-endpoint">.
 // Пока адреса нет, честно пишем, что приём не подключён.
 const endpoint = (document.querySelector('meta[name="form-endpoint"]') || {}).content;
+// Цели Метрики: идентификатор счётчика — в <html data-ym>.
+const goal = (name, params) => { const id = +document.documentElement.dataset.ym; if (id && window.ym) window.ym(id, "reachGoal", name, params); };
+document.addEventListener("click", (ev) => {
+  const a = ev.target.closest("a, [data-callback]");
+  if (!a) return;
+  if (a.matches("[data-callback]")) goal("callback_open");
+  else if ((a.getAttribute("href") || "").startsWith("tel:")) goal("tel_click");
+  else if ((a.getAttribute("href") || "").includes("max.ru")) goal("max_click");
+});
 
 document.querySelectorAll("[data-form]").forEach((form) => {
   const phone = form.elements.phone;
@@ -36,6 +45,7 @@ document.querySelectorAll("[data-form]").forEach((form) => {
     status.classList.remove("is-ok");
     if (!endpoint) {
       status.textContent = "Приём заявок подключим перед запуском сайта. Сейчас заявка никуда не отправлена.";
+      goal("zayavka_try", { page: location.pathname });
       return;
     }
     const data = Object.fromEntries([...new FormData(form)].filter(([k]) => k !== "agree"));
@@ -48,6 +58,7 @@ document.querySelectorAll("[data-form]").forEach((form) => {
       .then((r) => { if (!r.ok) throw new Error(r.status); })
       .then(() => {
         status.classList.add("is-ok");
+        goal("zayavka", { type: data.type || "", page: location.pathname });
         status.textContent = "Заявка отправлена. Перезвоним в рабочее время.";
         form.reset();
         const dlg = form.closest("dialog");

@@ -35,7 +35,7 @@ from data.sizes import SIZES, PRICES as SIZE_PRICES
 from data import objects_text as OT
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "29"  # меняйте при правке css/js
+VER = "30"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -165,6 +165,22 @@ def faq_block(items):
     return f'<section class="faq" aria-labelledby="faq-h"><h2 id="faq-h">Частые вопросы</h2>{qa}</section>'
 
 
+def metrika_head():
+    mid = SITE.get("metrika")
+    if not mid:
+        return ""
+    return f"""<script>(function(m,e,t,r,i,k,a){{m[i]=m[i]||function(){{(m[i].a=m[i].a||[]).push(arguments)}};m[i].l=1*new Date();
+for(var j=0;j<document.scripts.length;j++){{if(document.scripts[j].src===r){{return;}}}}
+k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)}})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id={mid}','ym');
+ym({mid},'init',{{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true}});</script>
+"""
+
+
+def metrika_noscript():
+    mid = SITE.get("metrika")
+    return (f'<noscript><div><img src="https://mc.yandex.ru/watch/{mid}" style="position:absolute;left:-9999px" alt=""></div></noscript>' if mid else "")
+
+
 def img_size(path):
     """Ширина и высота WebP/JPEG/PNG без сторонних библиотек (для width/height у <img>)."""
     b = (ROOT / path).read_bytes()[:65536]
@@ -233,7 +249,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
     img = SITE["base_url"] + (og_img or "/assets/img/og.png")
     blocks = "".join(ld(x) for x in (org_ld(), *schema))
     return f"""<!doctype html>
-<html lang="ru">
+<html lang="ru"{f' data-ym="{SITE["metrika"]}"' if SITE.get("metrika") else ""}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">{f'<meta name="form-endpoint" content="{e(SITE["form_endpoint"])}">' if SITE.get("form_endpoint") else ""}
@@ -262,8 +278,8 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <link rel="stylesheet" href="/assets/css/site.css?v={VER}">
 <meta name="theme-color" content="#2f1d11">
 {blocks}
-</head>
-<body>
+{metrika_head()}</head>
+<body>{metrika_noscript()}
 <a class="skip" href="#main">К содержанию</a>
 """
 

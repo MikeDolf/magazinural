@@ -21,6 +21,7 @@ SITE = {
     # Адрес Cloudflare Worker, который пересылает заявки в Telegram (docs/zayavki-telegram.md).
     # Пока None, форма проверяет поля и честно пишет, что приём не подключён.
     "form_endpoint": None,  # "https://zayavki.<ваш-аккаунт>.workers.dev"
+    "metrika": 113770140,  # Яндекс.Метрика: счётчик и цели (zayavka, callback_open, tel_click, max_click)
     "author": None,       # {"name": ..., "about": ...}
 }
 

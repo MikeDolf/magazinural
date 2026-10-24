@@ -48,7 +48,7 @@ def check(path):
         issues.append(f"description {len(desc)} (150–160)")
     if len(h1) != 1:
         issues.append(f"h1: {len(h1)}")
-    for need in ('<html lang="ru">', '<meta charset="utf-8">', 'name="viewport"', 'rel="canonical"', "og:description", "og:url",
+    for need in ('<html lang="ru"', '<meta charset="utf-8">', 'name="viewport"', 'rel="canonical"', "og:description", "og:url",
                  "og:type", "twitter:image", "og:title", "og:image", "twitter:card", 'rel="icon"', "apple-touch-icon", '"BreadcrumbList"', '"HomeAndConstructionBusiness"'):
         if need not in t and not (path == "/" and need == '"BreadcrumbList"'):
             issues.append(f"нет {need}")
