@@ -127,6 +127,9 @@ def org_ld():
            "areaServed": SITE["region"]}
     if SITE.get("phone"):
         org["telephone"] = SITE["phone"]
+    if SITE.get("hours", "").startswith("Круглосуточно"):
+        org["openingHoursSpecification"] = {"@type": "OpeningHoursSpecification", "opens": "00:00", "closes": "23:59",
+                                            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]}
     if SITE.get("email"):
         org["email"] = SITE["email"]
     ip = SITE.get("ip")
