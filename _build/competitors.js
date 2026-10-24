@@ -12,7 +12,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const OUT = path.join(__dirname, '..', 'semantics', 'competitors');
-const SKIP = /(^|\.)(avito|youtube|vk|ok|dzen|pinterest|ozon|wildberries|market\.yandex|2gis|zoon|flamp|yell|profi|youdo|wikipedia|t-j|e1|drive2|forumhouse|houzz|instagram|tiktok|rutube|lemanapro|leroymerlin|petrovich|vseinstrumenti|aliexpress|sima-land|livemaster|hoff|domclick|rg|onduline|realty\.yandex|cian|kp|ria)\./;
+const SKIP = /(^|\.)(avito|youtube|vk|ok|dzen|pinterest|ozon|wildberries|market\.yandex|2gis|zoon|flamp|yell|profi|youdo|wikipedia|t-j|e1|drive2|forumhouse|houzz|instagram|tiktok|rutube|lemanapro|leroymerlin|petrovich|vseinstrumenti|aliexpress|sima-land|livemaster|hoff|domclick|rg|onduline|realty\.yandex|cian|kp|ria|pulscen|arendabesedok|park66|ratingfirmporemontu)\./;
 
 const args = process.argv.slice(2);
 const top = Number((args[args.indexOf('--top') + 1]) || 0) || 5;
@@ -69,7 +69,8 @@ const FEATURES = {
   const ctx = await b.newContext({ locale: 'ru-RU', viewport: { width: 1366, height: 900 },
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36' });
   const pages = [];
-  for (const [url, hits] of urls) {
+  const queue = [...urls];
+  const crawl = async (url, hits) => {
     const p = await ctx.newPage();
     try {
       await p.goto(url, { timeout: 45000, waitUntil: 'domcontentloaded' });
@@ -111,9 +112,22 @@ const FEATURES = {
       pages.push({ url, hits, error: err.message.slice(0, 200) });
       console.log('ERR', url, err.message.slice(0, 100));
     }
-    await p.close();
-  }
+    await p.close().catch(() => {});
+  };
+  // 6 вкладок параллельно; страница, которая висит дольше 90 с, считается ошибкой.
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    for (let job; (job = queue.shift());) {
+      const [url, hits] = job;
+      let timer;
+      await Promise.race([crawl(url, hits), new Promise((ok) => { timer = setTimeout(() => { pages.push({ url, hits, error: 'таймаут 90 с' }); console.log('ERR', url, 'таймаут'); ok(); }, 90000); })]);
+      clearTimeout(timer);
+    }
+  }));
   await b.close();
+  // страница, досчитанная после таймаута, могла попасть дважды — оставляем удачную запись
+  const seen = new Map();
+  for (const x of pages) if (!seen.has(x.url) || seen.get(x.url).error) seen.set(x.url, x);
+  pages.splice(0, pages.length, ...seen.values());
   fs.writeFileSync(path.join(OUT, 'pages.json'), JSON.stringify(pages, null, 1));
 
   // Сводка
