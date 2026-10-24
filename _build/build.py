@@ -35,7 +35,7 @@ from data.sizes import SIZES, PRICES as SIZE_PRICES
 from data import objects_text as OT
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "30"  # меняйте при правке css/js
+VER = "31"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -252,7 +252,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <html lang="ru"{f' data-ym="{SITE["metrika"]}"' if SITE.get("metrika") else ""}>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">{f'<meta name="form-endpoint" content="{e(SITE["form_endpoint"])}">' if SITE.get("form_endpoint") else ""}
+<meta name="viewport" content="width=device-width, initial-scale=1">{f'<meta name="form-endpoint" content="https://api.web3forms.com/submit"><meta name="form-key" content="{e(SITE["form_key"])}">' if SITE.get("form_key") else (f'<meta name="form-endpoint" content="{e(SITE["form_endpoint"])}">' if SITE.get("form_endpoint") else "")}
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
 {robots}<link rel="canonical" href="{url}">

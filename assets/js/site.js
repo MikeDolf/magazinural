@@ -1,6 +1,7 @@
 // Форма заявки и «Перезвоните мне»: проверка полей и отправка на Worker из <meta name="form-endpoint">.
 // Пока адреса нет, честно пишем, что приём не подключён.
 const endpoint = (document.querySelector('meta[name="form-endpoint"]') || {}).content;
+const formKey = (document.querySelector('meta[name="form-key"]') || {}).content;  // Web3Forms
 // Цели Метрики: идентификатор счётчика — в <html data-ym>.
 const goal = (name, params) => { const id = +document.documentElement.dataset.ym; if (id && window.ym) window.ym(id, "reachGoal", name, params); };
 document.addEventListener("click", (ev) => {
@@ -51,15 +52,20 @@ document.querySelectorAll("[data-form]").forEach((form) => {
     const data = Object.fromEntries([...new FormData(form)].filter(([k]) => k !== "agree"));
     data.page = location.href;
     data.title = document.title;
+    if (formKey) {
+      if (data.website) return;  // ловушка для ботов заполнена — молча не отправляем
+      delete data.website;
+      Object.assign(data, { access_key: formKey, subject: `Заявка с magazinural.ru: ${data.type || "постройка"}`, from_name: "magazinural.ru" });
+    }
     const btn = form.querySelector("[type=submit]");
     btn.disabled = true;
     status.textContent = "Отправляем…";
-    fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
-      .then((r) => { if (!r.ok) throw new Error(r.status); })
+    fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data) })
+      .then((r) => r.json().catch(() => ({})).then((j) => { if (!r.ok || j.success === false) throw new Error(r.status); }))
       .then(() => {
         status.classList.add("is-ok");
         goal("zayavka", { type: data.type || "", page: location.pathname });
-        status.textContent = "Заявка отправлена. Перезвоним в рабочее время.";
+        status.textContent = "Заявка отправлена. Скоро перезвоним.";
         form.reset();
         const dlg = form.closest("dialog");
         if (dlg) setTimeout(() => dlg.close(), 2500);

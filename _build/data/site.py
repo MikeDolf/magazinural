@@ -18,8 +18,11 @@ SITE = {
     "telegram": None,     # "magazinural" (имя без @) или ссылка https://t.me/...
     "whatsapp": None,     # "+7 900 000-00-00"
     "max": "https://max.ru/u/f9LHodD0cOIgiq2N2buCj7oU32e1sbUDdW834GzM718dViUBpco7KXS8n10",
-    # Адрес Cloudflare Worker, который пересылает заявки в Telegram (docs/zayavki-telegram.md).
+    # Приём заявок — Web3Forms (web3forms.com, письма на почту владельца), docs/zayavki-web3forms.md.
+    # Ключ доступа Web3Forms публичный по замыслу сервиса: он и так виден в коде страницы.
     # Пока None, форма проверяет поля и честно пишет, что приём не подключён.
+    "form_key": None,       # "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    # Запасной вариант — свой Cloudflare Worker → Telegram (docs/zayavki-telegram.md):
     "form_endpoint": None,  # "https://zayavki.<ваш-аккаунт>.workers.dev"
     "metrika": 113770140,  # Яндекс.Метрика: счётчик и цели (zayavka, callback_open, tel_click, max_click)
     "author": None,       # {"name": ..., "about": ...}
