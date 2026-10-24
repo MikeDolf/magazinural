@@ -136,6 +136,17 @@ def check(path):
             issues.append("нет выделенных ключевых фраз")
         if "<ul>" not in art and "<ol>" not in art:
             issues.append("нет списков")
+    if "/obekt-" in path:  # страница объекта
+        art = "".join(re.findall(r'<section class="article obj__text"[^>]*>(.*?)</section>', t, re.S))
+        if len(words(text_of(art))) < 250:
+            issues.append(f"слов в тексте объекта {len(words(text_of(art)))} (250+)")
+        if len(set(re.findall(r'<a href="(/[^"#]*)"', art))) < 2:
+            issues.append("мало внутренних ссылок в тексте объекта")
+        if '"Product"' not in t:
+            issues.append("нет Product")
+        for img in re.findall(r"<img [^>]*>", t[t.find("<main"):]):
+            if 'alt="' not in img or "width=" not in img:
+                issues.append("картинка без alt/размеров"); break
     paras = re.findall(r"<p>(.*?)</p>", own, re.S)
     long_p = sum(1 for p in paras if len(re.findall(r"[.!?…](?:\s|$)", text_of(p))) > 4)
     if long_p:

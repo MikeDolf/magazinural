@@ -390,6 +390,8 @@ button, input, select, textarea { font-family: inherit; }
   .crumbs li { flex: none; white-space: nowrap; }
   .crumbs li:last-child { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; }
   .crumbs li:last-child span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 48px; }
+  .crumbs li:not(:first-child):not(:last-child) { flex: 0 1 auto; min-width: 2.5em; display: flex; align-items: center; }
+  .crumbs li:not(:first-child):not(:last-child) a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 48px; }
 }
 @media (min-width: 761px) { .toc a { padding: 5px 0; } }
 
@@ -444,7 +446,7 @@ button, input, select, textarea { font-family: inherit; }
 .sizes h2 { margin-bottom: 4px; }
 .sizes__note { color: var(--ink-3); margin-bottom: 14px; max-width: 62ch; }
 .sizes__list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
-@media (max-width: 560px) { .sizes__list { grid-template-columns: 1fr 1fr; gap: 8px; } .size { padding: 12px; } .size__dim { font-size: 1.3rem; } .size .btn { align-self: stretch; padding-inline: 8px; } }
+@media (max-width: 560px) { .sizes__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .size { min-width: 0; overflow-wrap: anywhere; } .size { padding: 12px; } .size__dim { font-size: 1.3rem; } .size .btn { align-self: stretch; padding-inline: 8px; } }
 .size { display: flex; flex-direction: column; gap: 6px; padding: 16px; background: var(--board); border: 1px solid var(--rule); border-top: 3px solid var(--frame); border-radius: var(--r); }
 .size__dim { font-size: 1.6rem; font-weight: 700; color: var(--frame); font-variant-numeric: tabular-nums; line-height: 1.1; }
 .size__t { font-size: 1rem; margin: 0; }
@@ -521,3 +523,15 @@ h2{letter-spacing:-0.015em}
 .post .intro h1 { color: var(--ink); text-shadow: none; font-size: clamp(1.9rem, 4vw, 2.8rem); }
 .post .intro__lead, .post .intro p { color: var(--ink-2); }
 .post__cover { border-radius: 14px; box-shadow: 0 24px 48px -28px oklch(0.15 0.03 50 / 0.7); }
+
+/* карточки объектов с фото: «Похожие объекты», «Наши работы» */
+.ocards { list-style: none; padding: 0; margin: 12px 0 8px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.ocard a { display: flex; flex-direction: column; height: 100%; color: inherit; text-decoration: none; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, oklch(0.997 0.005 85), oklch(0.978 0.012 80)); box-shadow: 0 1px 2px oklch(0.3 0.04 55 / .08), 0 18px 36px -22px oklch(0.3 0.06 55 / .5); transition: transform .25s var(--ease); }
+.ocard a:hover { transform: translateY(-3px); }
+.ocard img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; display: block; background: var(--frame-soft); }
+.ocard__t { font-weight: 700; padding: 12px 14px 2px; color: var(--ink); }
+.ocard__d { padding: 0 14px 14px; color: var(--ink-3); font-size: .92rem; }
+.works h2 { margin-top: 32px; }
+.passport__note { color: var(--ink-3); font-size: .92rem; margin: 10px 0 8px; }
+.obj__passport .btn { width: 100%; justify-content: center; }

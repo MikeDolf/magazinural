@@ -32,9 +32,10 @@ from data.articles import ARTICLES
 from data.seo import SEO
 from data import norms as N
 from data.sizes import SIZES
+from data import objects_text as OT
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "24"  # меняйте при правке css/js
+VER = "28"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -290,7 +291,7 @@ def footer():
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
                 + (f'<li><a href="{CONTACTS_PATH}">Контакты</a></li>' if has_contacts() else "")
-                + '<li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
+                + '<li><a href="/nashi-raboty/">Наши работы</a></li><li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
@@ -693,7 +694,7 @@ def norms_page():
     cards = []
     for i, n in enumerate(N.NORMS):
         rows = "".join(f'<tr><th scope="row">{e(t)}</th><td>{e(n[k])}</td></tr>' for k, t in N.COLUMNS)
-        link = (f'<a class="btn btn--ghost" href="{n["url"]}">Мастера и объекты</a>' if n["url"] else "")
+        link = (f'<a class="btn btn--ghost" href="{n["url"]}">Наши объекты</a>' if n["url"] else "")
         cards.append(f"""<article class="passport spot" data-norm="{n['key']}"{"" if i == 0 else " hidden"}>
   <header class="passport__bar"><span>Паспорт места</span><span class="passport__num">{e(N.SOURCE)}</span></header>
   <div class="passport__body">
@@ -829,13 +830,22 @@ def articles_hub():
     write("/stati/", body)
 
 
+def obj_card(x):
+    """Карточка объекта с фото — для «Похожих объектов» и «Наших работ»."""
+    ph = x["photos"][0]
+    w, h = img_size(ph)
+    return (f'<li class="ocard"><a href="{object_url(x)}"><img src="/{e(ph)}" alt="{e(x["title"])} — фото объекта" width="{w}" height="{h}" loading="lazy" decoding="async">'
+            f'<span class="ocard__t">{e(x["title"])}</span><span class="ocard__d">{e(cap(x.get("lead") or ""))}</span></a></li>')
+
+
 def object_page(item):
-    """Страница сданного объекта: фото, паспорт, описание, цена «от». Только для объектов с фото."""
+    """Страница объекта: фото, паспорт, описание, состав работ, цена, похожие объекты, заявка."""
     section = BY_KEY[item["section"]]
+    key = section["key"]
     path = object_url(item)
     photos = item.get("photos") or []
     gallery = "".join(
-        f'<img src="/{e(ph)}" alt="{e(item["title"])} — фото {n + 1}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
+        f'<img src="/{e(ph)}" alt="{e(item["title"])} — {"общий вид" if n == 0 else f"фото {n + 1}"}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
         f'{"fetchpriority=high" if n == 0 else "loading=lazy"} decoding="async">' for n, ph in enumerate(photos))
     rows = []
     for label, k in PASSPORT_ROWS:
@@ -845,12 +855,16 @@ def object_page(item):
         if v:
             rows.append(f'<tr><th scope="row">{label}</th><td>{e(v)}</td></tr>')
     price = item.get("price_from")
-    price_html = f'<p class="obj__price">Цена похожего объекта — от <b>{rub(price)}</b></p>' if price else '<p class="obj__price">Цену рассчитаем по вашим размерам</p>'
-    others = [x for x in LISTINGS if x["section"] == item["section"] and x is not item and x.get("photos")][:3]
-    trail = [("Главная", "/"), (section["name"], section["url"]), (item["title"], path)]
-    prod = {"@context": "https://schema.org", "@type": "Product", "name": item["title"],
+    price_html = f'<p class="obj__price">Цена похожего объекта — от <b>{rub(price)}</b></p>' if price else ""
+    same = [x for x in LISTINGS if x["section"] == key and x is not item and x.get("photos")]
+    sub_set = set(item.get("subs", []))
+    same.sort(key=lambda x: -len(sub_set & set(x.get("subs", []))))
+    others = same[:3]
+    subs = [s for s in section["subs"] if s["url"] in sub_set]
+    trail = [("Главная", "/"), (section["name"], section["url"])] + ([(subs[0]["name"], subs[0]["url"])] if subs else []) + [(item["title"], path)]
+    prod = {"@context": "https://schema.org", "@type": "Product", "name": item["title"], "sku": item["id"],
             "image": [SITE["base_url"] + "/" + ph for ph in photos], "brand": {"@id": ORG_ID},
-            "description": (item.get("description") or item["title"])[:300]}
+            "category": section["name"], "description": re.sub(r"\s+", " ", item.get("description") or item["title"])[:300]}
     if price:
         prod["offers"] = {"@type": "Offer", "priceCurrency": "RUB", "price": price, "url": SITE["base_url"] + path,
                           "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock"}
@@ -859,27 +873,83 @@ def object_page(item):
     lead_txt = item.get("lead") or ""
     desc = fit_len(f'{item["title"]}' + (f": {lead_txt}" if lead_txt else (f': {facts}.' if facts else ".")),
                    [" Фото и паспорт объекта" + (" с ценой «от»." if item.get("price_from") else "."), " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним.", " Гарантия 3 года.", " Работаем по договору.", " Екатеринбург."], 150, 160)
+    name_l = section["name"].lower()
+    art = next((a for a in ARTICLES if a["slug"] == OT.ARTICLE.get(key)), None)
+    sub_links = ", ".join(f'[{s["name"].lower()}]({s["url"]})' for s in subs)
+    text = f"""{item.get("description", "")}
+
+## Что входит в работы
+
+Строим «{item["title"].split("«")[-1].rstrip("»")}» и похожие постройки под ключ — от замера до уборки участка:
+
+""" + "\n".join(f"- {x}" for x in OT.WORKS.get(key, [])) + f"""
+
+## Сколько стоит такая постройка
+
+{OT.PRICE.get(key, "Цену считаем по вашим размерам и материалам.")} Смету по позициям присылаем после замера, итог фиксируем в договоре, гарантия — {COMPANY["warranty"]}.
+""" + (f"\nКак выбрать размер и что учесть заранее — в статье [«{art['h1']}»]({art['url']}).\n" if art else "") + f"""
+## Как ухаживать за постройкой
+
+Дерево служит долго, если за ним следить. Несколько простых правил:
+
+""" + "\n".join(f"- {x}" for x in OT.CARE.get(key, [])) + f"""
+
+## Как построить такую же
+
+Оставьте заявку и напишите, что понравилось в этом объекте. Перезвоним, уточним размеры и участок, приедем на замер, подготовим 3D-проект и смету. Можно повторить постройку один в один или изменить размер, крышу и отделку.
+""" + (f"\nПохожие постройки собраны в разделах: {sub_links}. " if sub_links else "\n") + f"Все {name_l} — в каталоге «[{section['name']}]({section['url']})»."
     body = f"""{head(title, desc[:160], path, True, [crumbs_ld(trail), prod], "website", "/" + photos[0])}{header()}
 <main id="main">
   <div class="page">
     {crumbs(trail)}
-    <div class="intro"><h1>{e(item["title"])}</h1>{price_html}
-      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a></p></div>
+    <div class="intro"><h1>{e(item["title"])}</h1><p class="intro__lead">{e(cap(lead_txt))}</p>{price_html}
+      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>
     <div class="obj">
       <div class="obj__gallery">{gallery}</div>
       <article class="passport obj__passport"><header class="passport__bar"><span>Паспорт объекта</span><span class="passport__num">№ {e(item["id"])}</span></header>
-        <div class="passport__body"><table class="passport__table"><tbody>{''.join(rows)}</tbody></table></div></article>
+        <div class="passport__body"><table class="passport__table"><tbody>{''.join(rows)}</tbody></table>
+        <p class="passport__note">Цену рассчитаем по вашим размерам</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Рассчитать такую же</a></div></article>
     </div>
-    {f'<section class="article">{md(item["description"])}</section>' if item.get("description") else ""}
+    <section class="article obj__text">{md(text)}</section>
     {howto_block()}
-    {('<section class="related" aria-labelledby="oth-h"><h2 id="oth-h">Другие наши объекты</h2><ul>' + "".join(f'<li><a href="{object_url(x)}">{e(x["title"])}{icon("arrow")}</a></li>' for x in others) + "</ul></section>") if others else ""}
-    <p class="cta-line">Все постройки этого типа — в разделе «<a href="{section["url"]}">{e(section["name"])}</a>».</p>
+    {('<section class="related related--cards" aria-labelledby="oth-h"><h2 id="oth-h">Похожие объекты</h2><ul class="ocards">' + "".join(obj_card(x) for x in others) + "</ul></section>") if others else ""}
+    <p class="cta-line">Все наши объекты с фото — на странице «<a href="{WORKS_PATH}">Наши работы</a>».</p>
   </div>
-  {lead_form(section["key"])}
+  {lead_form(key)}
 </main>
 {footer()}"""
     write(path, body)
 
+
+WORKS_PATH = "/nashi-raboty/"
+
+
+def works_page():
+    """«Наши работы»: все объекты с фото по разделам."""
+    items = [x for x in LISTINGS if x.get("photos")]
+    groups = []
+    for s in SECTIONS:
+        xs = [x for x in items if x["section"] == s["key"]]
+        if xs:
+            groups.append(f'<h2 id="w-{s["key"]}">{e(s["name"])} <span class="tabs__n">{len(xs)}</span></h2>'
+                          f'<ul class="ocards">' + "".join(obj_card(x) for x in xs) + "</ul>"
+                          f'<p class="cta-line">Цены, размеры и как выбрать — в разделе «<a href="{s["url"]}">{e(s["name"])}</a>».</p>')
+    n = len(items)
+    intro = md(f"""Здесь собраны наши работы — беседки, павильоны, террасы, веранды, крыльца и дачные домики, которые мы построили на участках в Екатеринбурге и пригородах. Всего {n} объектов с фото.
+
+У каждой постройки есть своя страница: фото, паспорт с материалом, крышей и гарантией, описание и состав работ. Понравился объект — нажмите «Хочу такую же», и мы рассчитаем его под ваш участок: можно повторить один в один или изменить размер, крышу и отделку.
+
+Фото сделаны нашими бригадами на объектах; на снимках стоит наш знак «{SITE['name']}».""")
+    body = f"""{head(fit_title("Наши работы: беседки, террасы и постройки из дерева"), "Наши работы в Екатеринбурге и пригородах: беседки, павильоны, террасы, веранды и дачные домики с фото и паспортом объекта. Построим такую же по вашим размерам.", WORKS_PATH, True, [crumbs_ld([("Главная", "/"), ("Наши работы", WORKS_PATH)]), {"@context": "https://schema.org", "@type": "CollectionPage", "name": "Наши работы", "url": SITE["base_url"] + WORKS_PATH, "publisher": {"@id": ORG_ID}}])}{header()}
+<main id="main"><div class="page">{crumbs([("Главная", "/"), ("Наши работы", WORKS_PATH)])}
+<div class="intro"><h1>Наши работы: постройки из дерева</h1><p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Рассчитать свою постройку</a></p></div>
+<section class="article">{intro}</section>
+<section class="works">{"".join(groups)}</section></div>
+{lead_form()}
+</main>
+{footer()}"""
+    write(WORKS_PATH, body)
+    return bool(items)
 
 def contacts_page():
     """Контакты: создаётся, только когда в site.py есть телефон или реквизиты ИП."""
@@ -1033,6 +1103,8 @@ def main():
         if item.get("photos"):
             object_page(item)
             indexable.append(object_url(item))
+    if works_page():
+        indexable.append(WORKS_PATH)
     if has_contacts():
         contacts_page()
         indexable.append(CONTACTS_PATH)
@@ -1054,7 +1126,7 @@ def main():
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + has_contacts()
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + has_contacts() + any(x.get("photos") for x in LISTINGS)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 
