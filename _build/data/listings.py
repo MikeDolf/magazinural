@@ -259,7 +259,7 @@ LISTINGS = [
                     "Водосток выведен сразу, дерево пока натурального цвета."},
     {"id": "029", "section": "besedka", "subs": [B + "zakrytye-teplye-i-zimnie-besedki/", B + "mnogogrannye-besedki-6-i-8-grannye/"],
      "title": "Домик «Кедровка»", "roof": "шатровая, мягкая черепица", "material": "строганая доска, остекление",
-     "warranty": W, "photos": ["assets/listings/029-1.webp"],
+     "warranty": W, "photos": ["assets/listings/029-1.webp", "assets/listings/029-2.webp", "assets/listings/029-3.webp"],
      "lead": "закрытый многогранный домик с большими окнами и стеклянной дверью среди сосен.",
      "description": "Многогранный закрытый домик среди сосен: большие окна, стеклянная двустворчатая дверь и крыльцо со ступенями. "
                     "Стоит на опорах между деревьями — стволы не пришлось трогать.\n\n"
