@@ -444,7 +444,7 @@ def passport(item=None):
         if item.get("photos"):
             action = f'<a class="btn btn--ghost" href="{object_url(item)}">{"Смотреть проект" if is_project(item) else "Фото и паспорт объекта"}</a>' + action
     return f"""<article class="passport{' passport--sample' if sample else ''}">
-  <header class="passport__bar"><span>{"3D-проект" if is_project(item) else "Паспорт объекта"}</span><span class="passport__num">{num}</span></header>
+  <header class="passport__bar"><span>{item.get("badge", "3D-проект") if is_project(item) else "Паспорт объекта"}</span><span class="passport__num">{num}</span></header>
   {figure}
   <div class="passport__body">
     <h3 class="passport__title">{e(title)}</h3>
@@ -891,7 +891,7 @@ def object_page(item):
     full = obj_name(item)
     proj = is_project(item)
     gallery = "".join(
-        f'<img src="/{e(ph)}" alt="{e(full)} — {"3D-визуализация" if proj else ("общий вид" if n == 0 else f"фото {n + 1}")}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
+        f'<img src="/{e(ph)}" alt="{e(full)} — {item.get("alt_kind", "3D-визуализация") if proj else ("общий вид" if n == 0 else f"фото {n + 1}")}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
         f'{"fetchpriority=high" if n == 0 else "loading=lazy"} decoding="async">' for n, ph in enumerate(photos))
     rows = []
     for label, k in PASSPORT_ROWS:
@@ -968,7 +968,7 @@ def object_page(item):
       <p class="intro__cta"><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if proj else "Хочу такую же"}</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>
     <div class="obj">
       <div class="obj__gallery">{gallery}</div>
-      <article class="passport obj__passport"><header class="passport__bar"><span>{"3D-проект" if proj else "Паспорт объекта"}</span><span class="passport__num">№ {e(item["id"])}</span></header>
+      <article class="passport obj__passport"><header class="passport__bar"><span>{item.get("badge", "3D-проект") if proj else "Паспорт объекта"}</span><span class="passport__num">№ {e(item["id"])}</span></header>
         <div class="passport__body"><table class="passport__table"><tbody>{''.join(rows)}</tbody></table>
         <p class="passport__note">{f'Цена от <b>{rub(price)}</b> — точную смету считаем после замера' if price else 'Цену рассчитаем по вашим размерам'}</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if proj else "Рассчитать такую же"}</a></div></article>
     </div>
@@ -998,7 +998,7 @@ def projects_page():
         if xs:
             groups.append(f'<h2 id="p-{s["key"]}">{e(s["name"])} <span class="tabs__n">{len(xs)}</span></h2><ul class="ocards">'
                           + "".join(obj_card(x) for x in xs) + f'</ul><p class="cta-line">Как выбрать и что влияет на цену — в разделе «<a href="{s["url"]}">{e(s["name"])}</a>».</p>')
-    intro = md(f"""Здесь собраны готовые 3D-проекты построек: каркасные бани с верандой и террасой, хозблоки с туалетом, душем и дровником, дачные туалеты и бытовки. Всего {len(items)} проектов с размерами.
+    intro = md(f"""Здесь собраны готовые проекты построек: каркасные бани с верандой и террасой, хозблоки с туалетом, душем и дровником, дачные туалеты, бытовки, мангальные зоны, летние кухни и курятники с вольером. Всего {len(items)} проектов с размерами.
 
 Каждый проект можно построить как есть или изменить: размер, планировку, крышу, окна и отделку. Нажмите «Рассчитать по проекту» — уточним участок и пришлём смету.
 

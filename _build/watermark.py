@@ -19,10 +19,14 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "assets" / "listings"
 CLEAN = ROOT / "semantics" / "listings-clean"
 WM = Image.open(ROOT / "_build" / "watermark.png").convert("RGBA")
+# горизонтальный вариант для фото 900×600 со знаком по центру (курятники, k*): закрывает остаток старой надписи
+WM_H = Image.open(ROOT / "_build" / "watermark-900h.png").convert("RGBA")
 
 
-def mark(img):
+def mark(img, name=""):
     w, h = img.size
+    if name.startswith("k") and (w, h) == WM_H.size:
+        return Image.alpha_composite(img.convert("RGBA"), WM_H).convert("RGB")
     if (w, h) == WM.size:
         wm = WM
     else:  # вписываем шаблон по ширине и центрируем
@@ -46,7 +50,7 @@ def main():
             if side and max(src.size) > side:
                 img = src.copy()
                 img.thumbnail((side, side), Image.LANCZOS)
-            out = mark(img)
+            out = mark(img, f.name)
             for q in (84, 80, 76, 72, 68, 64, 60):
                 b = io.BytesIO()
                 out.save(b, "WEBP", quality=q, method=6)
