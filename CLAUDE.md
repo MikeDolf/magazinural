@@ -164,7 +164,7 @@
   цена всегда «примерная» (вилка от цены «от» до +20 %, средние по рынку); картинки типов — `python3 _build/calc_thumbs.py`.
 - Web3Forms подключён (`form_key`). Цели Метрики: zayavka, zayavka_try, callback_open, tel_click, max_click, max_open, quiz_open, quiz_result, calc_use.
 - Автор статей и проверяющий тексты разделов — Павел Дмитриевич Никулов, главный инженер-конструктор (со слов владельца);
-  `SITE["author"]`, страница `/o-kompanii/nikulov/`, Person в разметке. Фото — `photo` в `site.py` (пока нет, показываем инициалы).
+  `SITE["author"]`, страница `/o-kompanii/nikulov/`, Person в разметке. Фото — `assets/img/avtor-nikulov.webp` (`photo` в `site.py`).
   Стаж и регалии автора не придумываем.
 - Служебные страницы по образцу конкурентов: `/o-kompanii/`, `/dostavka-i-oplata/`, `/garantiya/`, `/voprosy-i-otvety/`, `/karta-sayta/`.
   Условия гарантии (что входит, бесплатный выезд) — «в среднем по рынку», владельцу проверить.
