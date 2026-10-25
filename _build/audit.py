@@ -136,7 +136,7 @@ def check(path):
             issues.append("нет выделенных ключевых фраз")
         if "<ul>" not in art and "<ol>" not in art:
             issues.append("нет списков")
-    if "/obekt-" in path:  # страница объекта
+    if re.search(r"/(obekt|proekt)-p?[0-9]+/$", path):  # страница объекта
         art = "".join(re.findall(r'<section class="article obj__text"[^>]*>(.*?)</section>', t, re.S))
         if len(words(text_of(art))) < 250:
             issues.append(f"слов в тексте объекта {len(words(text_of(art)))} (250+)")

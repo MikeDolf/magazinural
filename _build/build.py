@@ -310,7 +310,7 @@ def footer():
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
                 + (f'<li><a href="{CONTACTS_PATH}">Контакты</a></li>' if has_contacts() else "")
-                + '<li><a href="/nashi-raboty/">Наши работы</a></li><li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
+                + '<li><a href="/nashi-raboty/">Наши работы</a></li><li><a href="/proekty/">Проекты</a></li><li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
@@ -393,8 +393,12 @@ def howto_block():
     return f'<section class="howto" aria-label="Оплата и порядок работ">{card("Как оплатить", PAYMENT)}{card("Как получить постройку", DELIVERY)}</section>'
 
 
+def is_project(item):
+    return item.get("kind") == "project"
+
+
 def object_url(item):
-    return f'{BY_KEY[item["section"]]["url"]}obekt-{item["id"]}/'
+    return f'{BY_KEY[item["section"]]["url"]}{"proekt" if is_project(item) else "obekt"}-{item["id"]}/'
 
 
 def crumbs(items):
@@ -435,12 +439,12 @@ def passport(item=None):
     else:
         src = item["photos"][0] if item.get("photos") else ""
         figure = f'<img class="passport__photo" src="/{e(src)}" alt="{e(item["title"])} — фото объекта" loading="lazy" width="{img_size(src)[0]}" height="{img_size(src)[1]}">'
-        title = item["title"]
-        action = f'<a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a>'
+        title = obj_name(item) if is_project(item) else item["title"]
+        action = f'<a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if is_project(item) else "Хочу такую же"}</a>'
         if item.get("photos"):
-            action = f'<a class="btn btn--ghost" href="{object_url(item)}">Фото и паспорт объекта</a>' + action
+            action = f'<a class="btn btn--ghost" href="{object_url(item)}">{"Смотреть проект" if is_project(item) else "Фото и паспорт объекта"}</a>' + action
     return f"""<article class="passport{' passport--sample' if sample else ''}">
-  <header class="passport__bar"><span>Паспорт объекта</span><span class="passport__num">{num}</span></header>
+  <header class="passport__bar"><span>{"3D-проект" if is_project(item) else "Паспорт объекта"}</span><span class="passport__num">{num}</span></header>
   {figure}
   <div class="passport__body">
     <h3 class="passport__title">{e(title)}</h3>
@@ -571,8 +575,11 @@ def section_page(section, sub=None, city=None):
             f'<li><a href="{u}"{" aria-current=page" if u == path else ""}>{e(t)}{f' <span class="tabs__n">{n}</span>' if n else ""}</a></li>'
             for t, u, n in tabs) + "</ul></nav>"
     if items:
+        items = sorted(items, key=is_project)
         grid = '<div class="grid">' + "".join(passport(i) for i in items) + "</div>"
-        count = f'<h2 class="board__h">Наши объекты</h2><p class="board__count">На стенде {len(items)} объект(ов)</p>'
+        n_obj = sum(1 for i in items if not is_project(i))
+        count = (f'<h2 class="board__h">{"Наши объекты и проекты" if n_obj and n_obj < len(items) else ("Проекты" if not n_obj else "Наши объекты")}</h2>'
+                 f'<p class="board__count">На стенде: {len(items)}</p>')
     else:
         grid = f"""<div class="empty">
   <div class="empty__text">
@@ -677,7 +684,7 @@ def home_page():
     </div>
     {advantages_block()}
     {steps_block()}
-    {('<section class="related related--cards" aria-labelledby="hw-h"><h2 id="hw-h">Наши работы</h2><ul class="ocards">' + "".join(obj_card(x) for x in [x for x in LISTINGS if x.get("photos")][:8]) + f'</ul><p class="cta-line">Все объекты с фото и паспортом — на странице «<a href="{WORKS_PATH}">Наши работы</a>».</p></section>') if any(x.get("photos") for x in LISTINGS) else ""}
+    {('<section class="related related--cards" aria-labelledby="hw-h"><h2 id="hw-h">Наши работы</h2><ul class="ocards">' + "".join(obj_card(x) for x in [x for x in LISTINGS if x.get("photos") and not is_project(x)][:8]) + f'</ul><p class="cta-line">Все объекты с фото и паспортом — на странице «<a href="{WORKS_PATH}">Наши работы</a>».</p></section>') if any(x.get("photos") for x in LISTINGS) else ""}
     <section class="dir" id="razdely" aria-labelledby="dir-h">
       <h2 id="dir-h">Что строим</h2>
       <ul class="dir__list">{core}</ul>
@@ -861,7 +868,10 @@ def articles_hub():
 def obj_name(x):
     """Полное имя объекта для H1, title и alt: запрос из Вордстата + название («Беседка с печью «Огневушка»»)."""
     q = re.search(r"«[^»]+»", x["title"])
-    return f'{x["kw"]} {q.group(0)}' if x.get("kw") and q else x["title"]
+    name = f'{x["kw"]} {q.group(0)}' if x.get("kw") and q else x["title"]
+    if is_project(x) and x.get("size"):
+        name += f' {x["size"]}'
+    return name
 
 
 def obj_card(x):
@@ -879,8 +889,9 @@ def object_page(item):
     path = object_url(item)
     photos = item.get("photos") or []
     full = obj_name(item)
+    proj = is_project(item)
     gallery = "".join(
-        f'<img src="/{e(ph)}" alt="{e(full)} — {"общий вид" if n == 0 else f"фото {n + 1}"}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
+        f'<img src="/{e(ph)}" alt="{e(full)} — {"3D-визуализация" if proj else ("общий вид" if n == 0 else f"фото {n + 1}")}" width="{img_size(ph)[0]}" height="{img_size(ph)[1]}" '
         f'{"fetchpriority=high" if n == 0 else "loading=lazy"} decoding="async">' for n, ph in enumerate(photos))
     rows = []
     for label, k in PASSPORT_ROWS:
@@ -891,7 +902,7 @@ def object_page(item):
             rows.append(f'<tr><th scope="row">{label}</th><td>{e(v)}</td></tr>')
     price = item.get("price_from")
     price_html = f'<p class="obj__price">Цена такой постройки — от <b>{rub(price)}</b></p>' if price else ""
-    same = [x for x in LISTINGS if x["section"] == key and x is not item and x.get("photos")]
+    same = [x for x in LISTINGS if x["section"] == key and x is not item and x.get("photos") and is_project(x) == proj]
     sub_set = set(item.get("subs", []))
     same.sort(key=lambda x: -len(sub_set & set(x.get("subs", []))))
     others = same[:3]
@@ -903,11 +914,11 @@ def object_page(item):
     if price:
         prod["offers"] = {"@type": "Offer", "priceCurrency": "RUB", "price": price, "url": SITE["base_url"] + path,
                           "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock"}
-    title = fit_title(fit_len(full, [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", " — фото объекта", ", фото", " — наш объект"] + ([", цена «от»"] if item.get("price_from") else []), 50, 60))
+    title = fit_title(fit_len(full, ([" — проект и цена"] if proj and item.get("price_from") else [" — проект"] if proj else []) + [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", " — фото объекта", ", фото", " — наш объект"] + ([", цена «от»"] if item.get("price_from") else []), 50, 60))
     facts = ", ".join(x for x in (item.get("size"), item.get("material"), item.get("place"), item.get("built") and f'сдан {item["built"]}') if x)
     lead_txt = item.get("lead") or ""
     desc = fit_len(f'{full}' + (f" — {lead_txt}" if lead_txt else (f': {facts}.' if facts else ".")),
-                   [" Фото и паспорт объекта" + (" с ценой «от»." if item.get("price_from") else "."), " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним.", " Гарантия 3 года.", " Работаем по договору.", " Екатеринбург.", " Под ключ.", " 3D-проект.", " Замер."], 150, 160)
+                   [(" 3D-проект" if proj else " Фото и паспорт объекта") + (" с ценой «от»." if item.get("price_from") else "."), " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним.", " Гарантия 3 года.", " Работаем по договору.", " Екатеринбург.", " Под ключ.", " 3D-проект.", " Замер."], 150, 160)
     name_l = section["name"].lower()
     art = next((a for a in ARTICLES if a["slug"] == OT.ARTICLE.get(key)), None)
     sub_links = ", ".join(f'[{s["name"].lower()}]({s["url"]})' for s in subs)
@@ -915,7 +926,7 @@ def object_page(item):
 
 ## Что входит в работы
 
-Строим «{item["title"].split("«")[-1].rstrip("»")}» и похожие постройки под ключ — от замера до уборки участка:
+{"Строим по этому проекту" if proj else "Строим"} «{item["title"].split("«")[-1].rstrip("»")}» и похожие постройки под ключ — от замера до уборки участка:
 
 """ + "\n".join(f"- {x}" for x in OT.WORKS.get(key, [])) + f"""
 
@@ -929,26 +940,30 @@ def object_page(item):
 
 """ + "\n".join(f"- {x}" for x in OT.CARE.get(key, [])) + f"""
 
-## Как построить такую же
+""" + ("""## Что можно изменить в проекте
 
-Оставьте заявку и напишите, что понравилось в этом объекте. Перезвоним, уточним размеры и участок, приедем на замер, подготовим 3D-проект и смету. Можно повторить постройку один в один или изменить размер, крышу и отделку.
+Проект — это отправная точка, а не жёсткий шаблон. Под ваш участок меняем длину и ширину, число отсеков и перегородок, положение дверей и окон, форму и материал крыши, отделку и цвет. Если нужен утеплённый вариант для зимы, добавим утепление и внутреннюю обшивку. Все изменения показываем в 3D до договора.
+
+""" if proj else "") + f"""## {"Как заказать по проекту" if proj else "Как построить такую же"}
+
+Оставьте заявку и напишите, что понравилось в этом {"проекте" if proj else "объекте"}. Перезвоним, уточним размеры и участок, приедем на замер, подготовим 3D-проект и смету. Можно повторить постройку один в один или изменить размер, крышу и отделку.
 """ + (f"\nПохожие постройки собраны в разделах: {sub_links}. " if sub_links else "\n") + f"Все {name_l} — в каталоге «[{section['name']}]({section['url']})»."
     body = f"""{head(title, desc[:160], path, True, [crumbs_ld(trail), prod], "website", "/" + photos[0])}{header()}
 <main id="main">
   <div class="page">
     {crumbs(trail)}
     <div class="intro"><h1>{e(full)}</h1><p class="intro__lead">{e(full)} — {e(lead_txt)}</p>{price_html}
-      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Хочу такую же</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>
+      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if proj else "Хочу такую же"}</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>
     <div class="obj">
       <div class="obj__gallery">{gallery}</div>
-      <article class="passport obj__passport"><header class="passport__bar"><span>Паспорт объекта</span><span class="passport__num">№ {e(item["id"])}</span></header>
+      <article class="passport obj__passport"><header class="passport__bar"><span>{"3D-проект" if proj else "Паспорт объекта"}</span><span class="passport__num">№ {e(item["id"])}</span></header>
         <div class="passport__body"><table class="passport__table"><tbody>{''.join(rows)}</tbody></table>
-        <p class="passport__note">{f'Цена от <b>{rub(price)}</b> — точную смету считаем после замера' if price else 'Цену рассчитаем по вашим размерам'}</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">Рассчитать такую же</a></div></article>
+        <p class="passport__note">{f'Цена от <b>{rub(price)}</b> — точную смету считаем после замера' if price else 'Цену рассчитаем по вашим размерам'}</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if proj else "Рассчитать такую же"}</a></div></article>
     </div>
     <section class="article obj__text">{md(text)}</section>
     {howto_block()}
-    {('<section class="related related--cards" aria-labelledby="oth-h"><h2 id="oth-h">Похожие объекты</h2><ul class="ocards">' + "".join(obj_card(x) for x in others) + "</ul></section>") if others else ""}
-    <p class="cta-line">Все наши объекты с фото — на странице «<a href="{WORKS_PATH}">Наши работы</a>».</p>
+    {('<section class="related related--cards" aria-labelledby="oth-h"><h2 id="oth-h">{"Похожие проекты" if proj else "Похожие объекты"}</h2><ul class="ocards">' + "".join(obj_card(x) for x in others) + "</ul></section>") if others else ""}
+    <p class="cta-line">{f'Все проекты — на странице «<a href="{PROJECTS_PATH}">Проекты построек</a>».' if proj else f'Все наши объекты с фото — на странице «<a href="{WORKS_PATH}">Наши работы</a>».'}</p>
   </div>
   {lead_form(key)}
 </main>
@@ -957,11 +972,40 @@ def object_page(item):
 
 
 WORKS_PATH = "/nashi-raboty/"
+PROJECTS_PATH = "/proekty/"
+
+
+def projects_page():
+    """«Проекты построек»: 3D-проекты по разделам — не сданные объекты, а готовые решения для заказа."""
+    items = [x for x in LISTINGS if is_project(x) and x.get("photos")]
+    if not items:
+        return False
+    groups = []
+    for s in SECTIONS:
+        xs = [x for x in items if x["section"] == s["key"]]
+        if xs:
+            groups.append(f'<h2 id="p-{s["key"]}">{e(s["name"])} <span class="tabs__n">{len(xs)}</span></h2><ul class="ocards">'
+                          + "".join(obj_card(x) for x in xs) + f'</ul><p class="cta-line">Как выбрать и что влияет на цену — в разделе «<a href="{s["url"]}">{e(s["name"])}</a>».</p>')
+    intro = md(f"""Здесь собраны готовые 3D-проекты построек: хозблоки с туалетом, душем и дровником, дачные туалеты и бытовки. Всего {len(items)} проектов с размерами.
+
+Каждый проект можно построить как есть или изменить: размер, планировку, крышу, окна и отделку. Нажмите «Рассчитать по проекту» — уточним участок и пришлём смету.
+
+Сданные объекты с фото с участков — на странице «[Наши работы]({WORKS_PATH})».""")
+    body = f"""{head(fit_title("Проекты хозблоков, туалетов и бытовок для дачи с ценами"), "Проекты хозблоков с туалетом и душем, дачных туалетов и бытовок с размерами и ценой «от». Построим по проекту или изменим под ваш участок в Екатеринбурге.", PROJECTS_PATH, True, [crumbs_ld([("Главная", "/"), ("Проекты", PROJECTS_PATH)]), {"@context": "https://schema.org", "@type": "CollectionPage", "name": "Проекты построек", "url": SITE["base_url"] + PROJECTS_PATH, "publisher": {"@id": ORG_ID}}])}{header()}
+<main id="main"><div class="page">{crumbs([("Главная", "/"), ("Проекты", PROJECTS_PATH)])}
+<div class="intro"><h1>Проекты хозблоков, туалетов и бытовок</h1><p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Рассчитать по проекту</a></p></div>
+<section class="article">{intro}</section>
+<section class="works">{"".join(groups)}</section></div>
+{lead_form()}
+</main>
+{footer()}"""
+    write(PROJECTS_PATH, body)
+    return True
 
 
 def works_page():
     """«Наши работы»: все объекты с фото по разделам."""
-    items = [x for x in LISTINGS if x.get("photos")]
+    items = [x for x in LISTINGS if x.get("photos") and not is_project(x)]
     groups = []
     for s in SECTIONS:
         xs = [x for x in items if x["section"] == s["key"]]
@@ -1140,6 +1184,8 @@ def main():
             indexable.append(object_url(item))
     if works_page():
         indexable.append(WORKS_PATH)
+    if projects_page():
+        indexable.append(PROJECTS_PATH)
     if has_contacts():
         contacts_page()
         indexable.append(CONTACTS_PATH)
@@ -1161,7 +1207,7 @@ def main():
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + has_contacts() + any(x.get("photos") for x in LISTINGS)
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 
