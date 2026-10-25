@@ -986,14 +986,14 @@ def projects_page():
         if xs:
             groups.append(f'<h2 id="p-{s["key"]}">{e(s["name"])} <span class="tabs__n">{len(xs)}</span></h2><ul class="ocards">'
                           + "".join(obj_card(x) for x in xs) + f'</ul><p class="cta-line">Как выбрать и что влияет на цену — в разделе «<a href="{s["url"]}">{e(s["name"])}</a>».</p>')
-    intro = md(f"""Здесь собраны готовые 3D-проекты построек: хозблоки с туалетом, душем и дровником, дачные туалеты и бытовки. Всего {len(items)} проектов с размерами.
+    intro = md(f"""Здесь собраны готовые 3D-проекты построек: каркасные бани с верандой и террасой, хозблоки с туалетом, душем и дровником, дачные туалеты и бытовки. Всего {len(items)} проектов с размерами.
 
 Каждый проект можно построить как есть или изменить: размер, планировку, крышу, окна и отделку. Нажмите «Рассчитать по проекту» — уточним участок и пришлём смету.
 
 Сданные объекты с фото с участков — на странице «[Наши работы]({WORKS_PATH})».""")
-    body = f"""{head(fit_title("Проекты хозблоков, туалетов и бытовок для дачи с ценами"), "Проекты хозблоков с туалетом и душем, дачных туалетов и бытовок с размерами и ценой «от». Построим по проекту или изменим под ваш участок в Екатеринбурге.", PROJECTS_PATH, True, [crumbs_ld([("Главная", "/"), ("Проекты", PROJECTS_PATH)]), {"@context": "https://schema.org", "@type": "CollectionPage", "name": "Проекты построек", "url": SITE["base_url"] + PROJECTS_PATH, "publisher": {"@id": ORG_ID}}])}{header()}
+    body = f"""{head(fit_title("Проекты бань, хозблоков, туалетов и бытовок с ценами"), "Проекты каркасных бань, хозблоков с туалетом и душем, дачных туалетов и бытовок с ценой «от». Построим по проекту или изменим под ваш участок в Екатеринбурге.", PROJECTS_PATH, True, [crumbs_ld([("Главная", "/"), ("Проекты", PROJECTS_PATH)]), {"@context": "https://schema.org", "@type": "CollectionPage", "name": "Проекты построек", "url": SITE["base_url"] + PROJECTS_PATH, "publisher": {"@id": ORG_ID}}])}{header()}
 <main id="main"><div class="page">{crumbs([("Главная", "/"), ("Проекты", PROJECTS_PATH)])}
-<div class="intro"><h1>Проекты хозблоков, туалетов и бытовок</h1><p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Рассчитать по проекту</a></p></div>
+<div class="intro"><h1>Проекты бань, хозблоков, туалетов и бытовок</h1><p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Рассчитать по проекту</a></p></div>
 <section class="article">{intro}</section>
 <section class="works">{"".join(groups)}</section></div>
 {lead_form()}
