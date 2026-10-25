@@ -144,8 +144,8 @@ def check(path):
             issues.append(f"слов в тексте объекта {len(words(text_of(art)))} (250+)")
         if len(set(re.findall(r'<a href="(/[^"#]*)"', art))) < 2:
             issues.append("мало внутренних ссылок в тексте объекта")
-        if '"Product"' not in t:
-            issues.append("нет Product")
+        if '"Product"' not in t and '"Service"' not in t:
+            issues.append("нет Product или Service")
         for img in re.findall(r"<img [^>]*>", t[t.find("<main"):]):
             if 'alt="' not in img or "width=" not in img:
                 issues.append("картинка без alt/размеров"); break

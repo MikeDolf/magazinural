@@ -2,4 +2,11 @@ User-agent: *
 Disallow: /_build/
 Disallow: /docs/
 Disallow: /workers/
+
+User-agent: Yandex
+Disallow: /_build/
+Disallow: /docs/
+Disallow: /workers/
+Clean-param: type /kalkulyator/
+
 Sitemap: https://magazinural.ru/sitemap.xml

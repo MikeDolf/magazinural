@@ -37,7 +37,7 @@ from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 from data.article_tables import ARTICLE_TABLES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "42"  # меняйте при правке css/js
+VER = "44"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -126,7 +126,7 @@ ORG_ID = f"{SITE['base_url']}/#org"
 def org_ld():
     org = {"@context": "https://schema.org", "@type": "HomeAndConstructionBusiness", "@id": ORG_ID, "name": SITE["name"],
            "url": SITE["base_url"] + "/", "logo": SITE["base_url"] + "/assets/img/logo-512.png",
-           "areaServed": SITE["region"]}
+           "areaServed": SITE["region"], "image": SITE["base_url"] + "/assets/img/og.png", "priceRange": "₽₽"}
     if SITE.get("phone"):
         org["telephone"] = SITE["phone"]
     if SITE.get("hours", "").startswith("Круглосуточно"):
@@ -247,6 +247,14 @@ def img_size(path):
     return 1200, 800
 
 
+def srcset(path, sizes="(max-width: 640px) 92vw, 380px"):
+    """srcset с уменьшенной копией (assets/listings/thumbs/*-640.webp, _build/thumbs.py), если она есть."""
+    th = f"assets/listings/thumbs/{Path(path).stem}-640.webp"
+    if not (ROOT / th).exists():
+        return ""
+    return f' srcset="/{th} 640w, /{e(path)} {img_size(path)[0]}w" sizes="{sizes}"'
+
+
 def fit_len(base, tails, lo, hi):
     """Добирает к тексту хвосты, пока он не войдёт в диапазон lo–hi знаков."""
     for t in tails:
@@ -327,7 +335,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/golos-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css?v={VER}">
+<link rel="stylesheet" href="/assets/css/site.min.css?v={VER}">
 <meta name="theme-color" content="#2f1d11">
 {blocks}
 {metrika_head()}</head>
@@ -430,7 +438,7 @@ def callback_dialog():
     """«Перезвоните мне»: имя и телефон. Отправка — та же, что у формы заявки (SITE["form_endpoint"])."""
     return f"""<dialog class="callback" id="callback" aria-labelledby="callback-h">
   <form class="form callback__form" method="dialog" novalidate data-form data-callback-form>
-    <div class="callback__head"><h2 id="callback-h">Перезвоним вам</h2>
+    <div class="callback__head"><p class="dlg__t" id="callback-h">Перезвоним вам</p>
       <button class="callback__close" type="button" data-callback-close aria-label="Закрыть">×</button></div>
     <p>Оставьте телефон — перезвоним, ответим на вопросы и договоримся о замере.</p>
     <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
@@ -484,7 +492,7 @@ def max_dialog():
         return ""
     return f"""<dialog class="callback mxd" id="max" aria-labelledby="max-h">
   <div class="callback__form">
-    <div class="callback__head"><h2 id="max-h">{MAX_ICON}Напишите нам в MAX</h2>
+    <div class="callback__head"><p class="dlg__t" id="max-h">{MAX_ICON}Напишите нам в MAX</p>
       <button class="callback__close" type="button" data-dialog-close aria-label="Закрыть">×</button></div>
     <p>Отвечаем круглосуточно. Пришлите фото участка, эскиз или понравившуюся постройку — подскажем решение и примерную цену.</p>
     <div class="mxd__qr"><img src="/assets/img/max-qr.svg" width="148" height="148" alt="QR-код чата «{e(SITE['name'])}» в MAX" loading="lazy">
@@ -553,7 +561,7 @@ def quiz_dialog():
     """Квиз «Рассчитать стоимость»: шаги рисует site.js из calc-data.js, форма в конце — общая отправка заявок."""
     return f"""<dialog class="callback quiz" id="quiz" aria-labelledby="quiz-h">
   <div class="quiz__in">
-    <div class="callback__head"><h2 id="quiz-h">Рассчитать стоимость</h2>
+    <div class="callback__head"><p class="dlg__t" id="quiz-h">Рассчитать стоимость</p>
       <button class="callback__close" type="button" data-dialog-close aria-label="Закрыть">×</button></div>
     <div class="quiz__bar" aria-hidden="true"><span></span></div>
     <div data-calc="quiz"></div>
@@ -630,7 +638,7 @@ def passport(item=None):
         action = '<a class="btn btn--ghost" href="#zayavka">Хочу такую постройку</a>'
     else:
         src = item["photos"][0] if item.get("photos") else ""
-        figure = f'<img class="passport__photo" src="/{e(src)}" alt="{e(item["title"])} — фото объекта" loading="lazy" width="{img_size(src)[0]}" height="{img_size(src)[1]}">'
+        figure = f'<img class="passport__photo" src="/{e(src)}"{srcset(src)} alt="{e(item["title"])} — фото объекта" loading="lazy" width="{img_size(src)[0]}" height="{img_size(src)[1]}">'
         title = obj_name(item) if is_project(item) else item["title"]
         action = f'<a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if is_project(item) else "Хочу такую же"}</a>'
         if item.get("photos"):
@@ -684,7 +692,11 @@ def lead_form(selected_key=None):
 
 # ---------- страницы ----------
 
+WRITTEN = set()
+
+
 def write(path, content):
+    WRITTEN.add(path)
     out = ROOT / path.strip("/") / "index.html" if path != "/" else ROOT / "index.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(content, encoding="utf-8")
@@ -821,7 +833,7 @@ def section_page(section, sub=None, city=None):
     updated_html = f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time>{reviewed()}</p>' if upd and text else ""
     pic_items = [i for i in sorted(items, key=is_project) if i.get("photos")][:3]
     pics = ('<div class="intro__pics" aria-hidden="true">' + "".join(
-        f'<img src="/{e(i["photos"][0])}" alt="" width="{img_size(i["photos"][0])[0]}" height="{img_size(i["photos"][0])[1]}"{" fetchpriority=high" if n == 0 else ""} decoding="async">'
+        f'<img src="/{e(i["photos"][0])}"{srcset(i["photos"][0], "(min-width: 1000px) 300px, 1px")} alt="" width="{img_size(i["photos"][0])[0]}" height="{img_size(i["photos"][0])[1]}" loading="lazy" decoding="async">'
         for n, i in enumerate(pic_items)) + "</div>") if len(pic_items) == 3 else ""
     body = f"""{head(title, desc, path, index, schema)}{header()}
 <main id="main">
@@ -1022,7 +1034,7 @@ def article_photos(a):
 
 def figure_html(it, src):
     w, h = img_size(src)
-    return (f'<figure class="post__fig"><a href="{object_url(it)}"><img src="/{e(src)}" alt="{e(obj_name(it))} — {"проект" if is_project(it) else "наш объект"}" '
+    return (f'<figure class="post__fig"><a href="{object_url(it)}"><img src="/{e(src)}"{srcset(src, "(max-width: 760px) 92vw, 704px")} alt="{e(obj_name(it))} — {"проект" if is_project(it) else "наш объект"}" '
             f'width="{w}" height="{h}" loading="lazy" decoding="async"></a><figcaption>{e(obj_name(it))} · '
             f'<a href="{object_url(it)}">{"смотреть проект" if is_project(it) else "фото и паспорт объекта"}</a></figcaption></figure>')
 
@@ -1071,7 +1083,7 @@ def article_page(a):
     if pics:
         it, src = pics[0]
         w, h = img_size(src)
-        cover_html = (f'<figure class="post__hero"><img class="post__cover" src="/{e(src)}" alt="{e(a["h1"].split(":")[0])}: {e(obj_name(it))} — '
+        cover_html = (f'<figure class="post__hero"><img class="post__cover" src="/{e(src)}"{srcset(src, "(max-width: 760px) 92vw, 704px")} alt="{e(a["h1"].split(":")[0])}: {e(obj_name(it))} — '
                       f'{"проект" if is_project(it) else "построили мы"}" width="{w}" height="{h}" decoding="async" fetchpriority="high">'
                       f'<figcaption>{e(obj_name(it))} · <a href="{object_url(it)}">{"смотреть проект" if is_project(it) else "фото и паспорт объекта"}</a></figcaption></figure>')
     body_html = place_inserts(body_html, a, pics[1:])
@@ -1145,11 +1157,18 @@ def obj_name(x):
     return name
 
 
+def pick(items, n, k):
+    """k пунктов из списка со сдвигом n: у соседних объектов разные наборы и порядок."""
+    if len(items) <= k:
+        return items
+    return [items[(n + i * 2) % len(items)] if len(items) % 2 else items[(n + i) % len(items)] for i in range(k)]
+
+
 def obj_card(x):
     """Карточка объекта с фото — для «Похожих объектов» и «Наших работ»."""
     ph = x["photos"][0]
     w, h = img_size(ph)
-    return (f'<li class="ocard"><a href="{object_url(x)}"><img src="/{e(ph)}" alt="{e(obj_name(x))} — фото" width="{w}" height="{h}" loading="lazy" decoding="async">'
+    return (f'<li class="ocard"><a href="{object_url(x)}"><img src="/{e(ph)}"{srcset(ph)} alt="{e(obj_name(x))} — фото" width="{w}" height="{h}" loading="lazy" decoding="async">'
             f'<span class="ocard__t">{e(obj_name(x))}</span><span class="ocard__d">{e(cap(x.get("lead") or ""))}</span></a></li>')
 
 
@@ -1197,12 +1216,29 @@ def object_page(item):
                           # изготовление по индивидуальному заказу — возврата нет (ЗоЗПП ст. 26.1), недостатки — по гарантии
                           "hasMerchantReturnPolicy": {"@type": "MerchantReturnPolicy", "applicableCountry": "RU",
                                                       "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"}}
+        prod["offers"]["priceValidUntil"] = "2027-12-31"
+    else:
+        # Без цены Product без offers — ошибка в Google; такой объект размечаем как услугу с фото.
+        prod = {"@context": "https://schema.org", "@type": "Service", "name": full, "serviceType": section["name"],
+                "image": [SITE["base_url"] + "/" + ph for ph in photos], "url": SITE["base_url"] + path, "provider": {"@id": ORG_ID},
+                "areaServed": {"@type": "City", "name": "Екатеринбург"},
+                "description": re.sub(r"\s+", " ", item.get("description") or item["title"])[:300]}
     title = fit_title(fit_len(full, ([" — проект и цена"] if proj and item.get("price_from") else [" — проект"] if proj else []) + [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", " — фото объекта", ", фото", " — наш объект"] + ([", цена «от»"] if item.get("price_from") else []), 50, 60))
     facts = ", ".join(x for x in (item.get("size"), item.get("material"), item.get("place"), item.get("built") and f'сдан {item["built"]}') if x)
     lead_txt = item.get("lead") or ""
     desc = fit_len(f'{full}' + (f" — {lead_txt}" if lead_txt else (f': {facts}.' if facts else ".")),
                    [(" 3D-проект" if proj else " Фото и паспорт объекта") + (" с ценой «от»." if item.get("price_from") else "."), " Построим такую же по вашим размерам.", " Ответим на вопросы о замере и сроках.", " Оставьте заявку — перезвоним.", " Гарантия 3 года.", " Работаем по договору.", " Екатеринбург.", " Под ключ.", " 3D-проект.", " Замер."], 150, 160)
     name_l = section["name"].lower()
+    # Свои для каждого объекта: набор пунктов из общих списков раздела и абзац с параметрами — страницы не дублируют друг друга.
+    n_obj = LISTINGS.index(item)
+    short = item["title"].split("«")[-1].rstrip("»")
+    bits = [f"размер — {item['size']}" if item.get("size") else "", f"материал — {item['material']}" if item.get("material") else "",
+            f"крыша — {item['roof']}" if item.get("roof") else "", f"фундамент — {item['foundation']}" if item.get("foundation") else "",
+            f"срок работ — {item['duration']}" if item.get("duration") else ""]
+    bits = [b for b in bits if b]
+    specs = (f"{'В проекте' if proj else 'У постройки'} «{short}» {'; '.join(bits)}. " if bits else "") + (
+        f"Если нужен другой размер или материал, пересчитаем смету: ориентир — от {rub(price)} за базовую комплектацию." if price
+        else "Если нужен другой размер или материал, пересчитаем смету под ваш участок.")
     art = next((a for a in ARTICLES if a["slug"] == OT.ARTICLE.get(key)), None)
     sub_links = ", ".join(f'[{s["name"].lower()}]({s["url"]})' for s in subs)
     text = f"""{item.get("description", "")}
@@ -1211,7 +1247,9 @@ def object_page(item):
 
 {"Строим по этому проекту" if proj else "Строим"} «{item["title"].split("«")[-1].rstrip("»")}» и похожие постройки под ключ — от замера до уборки участка:
 
-""" + "\n".join(f"- {x}" for x in OT.WORKS.get(key, [])) + f"""
+""" + "\n".join(f"- {x}" for x in pick(OT.WORKS.get(key, []), n_obj, 5)) + f"""
+
+{specs}
 
 ## Сколько стоит такая постройка
 
@@ -1221,7 +1259,7 @@ def object_page(item):
 
 Дерево служит долго, если за ним следить. Несколько простых правил:
 
-""" + "\n".join(f"- {x}" for x in OT.CARE.get(key, [])) + f"""
+""" + "\n".join(f"- {x}" for x in pick(OT.CARE.get(key, []), n_obj + 1, 3)) + f"""
 
 """ + ("""## Что можно изменить в проекте
 
@@ -1244,8 +1282,7 @@ def object_page(item):
         <p class="passport__note">{f'Цена от <b>{rub(price)}</b> — точную смету считаем после замера' if price else 'Цену рассчитаем по вашим размерам'}</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if proj else "Рассчитать такую же"}</a></div></article>
     </div>
     <section class="article obj__text">{md(text)}</section>
-    {howto_block()}
-    {('<section class="related related--cards" aria-labelledby="oth-h"><h2 id="oth-h">{"Похожие проекты" if proj else "Похожие объекты"}</h2><ul class="ocards">' + "".join(obj_card(x) for x in others) + "</ul></section>") if others else ""}
+    {(f'<section class="related related--cards" aria-labelledby="oth-h"><h2 id="oth-h">{"Похожие проекты" if proj else "Похожие объекты"}</h2><ul class="ocards">' + "".join(obj_card(x) for x in others) + "</ul></section>") if others else ""}
     <p class="cta-line">{f'Все проекты — на странице «<a href="{PROJECTS_PATH}">Проекты построек</a>».' if proj else f'Все наши объекты с фото — на странице «<a href="{WORKS_PATH}">Наши работы</a>».'}</p>
   </div>
   {lead_form(key)}
@@ -1360,10 +1397,7 @@ def calc_page():
 <h2>Цены по размерам</h2>
 <p>Ниже — нижняя граница вилки для популярных размеров в базовой комплектации. Цена примерная и зависит от участка и отделки.</p>
 {table}"""
-    schema = [crumbs_ld([("Главная", "/"), ("Калькулятор стоимости", path)]), faq_ld(CALC_FAQ),
-              {"@context": "https://schema.org", "@type": "WebApplication", "name": "Калькулятор стоимости деревянных построек",
-               "url": SITE["base_url"] + path, "applicationCategory": "UtilitiesApplication", "operatingSystem": "Any",
-               "inLanguage": "ru", "isAccessibleForFree": True, "provider": {"@id": ORG_ID}}]
+    schema = [crumbs_ld([("Главная", "/"), ("Калькулятор стоимости", path)]), faq_ld(CALC_FAQ)]
     body = f"""{head(fit_title(title), desc, path, True, schema)}{header()}
 <main id="main"><div class="page">{crumbs([("Главная", "/"), ("Калькулятор стоимости", path)])}
 <div class="intro"><h1>{e(h1)}</h1>
@@ -1722,7 +1756,17 @@ def not_found():
     (ROOT / "404.html").write_text(body, encoding="utf-8")
 
 
+def minify_css():
+    """site.css → site.min.css: без комментариев и лишних пробелов (правим только site.css)."""
+    css = (ROOT / "assets" / "css" / "site.css").read_text(encoding="utf-8")
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    css = re.sub(r"\s+", " ", css)
+    css = re.sub(r"\s*([{};,])\s*", r"\1", css).replace(";}", "}")
+    (ROOT / "assets" / "css" / "site.min.css").write_text(css.strip() + "\n", encoding="utf-8")
+
+
 def main():
+    minify_css()
     indexable = ["/"]
     home_page()
     for s in SECTIONS:
@@ -1771,11 +1815,21 @@ def main():
     not_found()
     sitemap_page(set(indexable))
     indexable.append(MAP_PATH)
-    urls = "".join(f"<url><loc>{SITE['base_url']}{p}</loc></url>" for p in indexable)
+    # Страницы объектов, которых больше нет в listings.py (удалённые фото), — удаляем, чтобы не висели в индексе.
+    import shutil
+    for d in ROOT.glob("*/*/index.html"):
+        rel = "/" + str(d.parent.relative_to(ROOT)) + "/"
+        if re.search(r"/(obekt|proekt)-[pk]?\d+/$", rel) and rel not in WRITTEN:
+            shutil.rmtree(d.parent)
+            print("удалена устаревшая страница", rel)
+    # lastmod — только там, где дата известна: статьи (опубликована/обновлена) и тексты разделов (UPDATED).
+    lastmod = {a["url"]: a.get("updated") or a["published"] for a in ARTICLES}
+    lastmod.update({u: d for u, d in UPDATED.items()})
+    urls = "".join(f"<url><loc>{SITE['base_url']}{p}</loc>" + (f"<lastmod>{lastmod[p]}</lastmod>" if p in lastmod else "") + "</url>" for p in indexable)
     (ROOT / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', encoding="utf-8")
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
-    (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
+    (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\n\nUser-agent: Yandex\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nClean-param: type /kalkulyator/\n\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
     total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + 5 + bool(SITE.get("author")) + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 

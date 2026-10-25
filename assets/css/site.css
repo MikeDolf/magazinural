@@ -413,7 +413,7 @@ button, input, select, textarea { font-family: inherit; }
 .callback::backdrop { background: oklch(0.2 0.05 50 / 0.55); }
 .callback__form { padding: 22px 22px 18px; display: grid; gap: 12px; }
 .callback__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.callback__head h2 { font-size: 1.3rem; margin: 0; }
+.callback__head h2, .dlg__t { font-size: 1.3rem; margin: 0; font-weight: 700; color: var(--ink); line-height: 1.25; }
 .callback__close { min-width: 48px; min-height: 48px; border: 0; background: transparent; font-size: 1.8rem; line-height: 1; color: var(--ink-2); cursor: pointer; }
 .callback p { color: var(--ink-2); }
 
@@ -579,8 +579,8 @@ h2{letter-spacing:-0.015em}
 .btn--max:hover { filter: brightness(1.08); }
 .btn--max .mx { width: 26px; height: 26px; border-radius: 8px; box-shadow: 0 0 0 2px oklch(1 0 0 / .55); }
 .mxd { width: min(440px, calc(100% - 24px)); }
-.mxd .callback__head h2 { display: flex; align-items: center; gap: 10px; }
-.mxd .callback__head h2 .mx { width: 34px; height: 34px; }
+.mxd .dlg__t { display: flex; align-items: center; gap: 10px; }
+.mxd .dlg__t .mx { width: 34px; height: 34px; }
 .mxd__qr { display: flex; align-items: center; gap: 16px; padding: 12px; border: 1px solid var(--rule); border-radius: 10px; background: #fff; }
 .mxd__qr img { width: 132px; height: 132px; flex: none; }
 .mxd__qr p { margin: 0; font-size: .92rem; }
@@ -668,7 +668,7 @@ h2{letter-spacing:-0.015em}
 .callback .calc__result .calc__label, .callback .calc__result .calc__note { color: var(--frame-ink-2); }
 .callback .calc__result .calc__sum { color: var(--honey); }
 .mxd__alt { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 16px; }
-@media (max-width: 480px) { .mxd .callback__head h2 { font-size: 1.15rem; } }
+@media (max-width: 480px) { .mxd .dlg__t { font-size: 1.15rem; } }
 .calc__note--page { display: none; margin: 12px 0 0; color: var(--ink-3); }
 @media (max-width: 959px) {
   .calc__result:not(.calc__result--quiz) { gap: 4px; }
@@ -948,3 +948,5 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
 .related .ocards > li { border-bottom: 0; }
 .related .ocard a { padding: 0; gap: 0; align-items: stretch; justify-content: flex-start; font-weight: inherit; }
 .related .ocard a:hover { color: inherit; }
+/* LCP: заголовок и вводный текст первого экрана видны сразу (прозрачный элемент Google не считает отрисованным) */
+.page > .intro h1, .page > .intro .intro__lead { animation: none; }
