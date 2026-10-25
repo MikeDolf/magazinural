@@ -678,3 +678,39 @@ h2{letter-spacing:-0.015em}
 }
 /* узкий телефон: шапка не вмещает пять кнопок — «Перезвоните мне» есть в первом экране и в окне MAX */
 @media (max-width: 480px) { .top__call { display: none; } .top__max { margin-right: 0; } }
+
+/* ---------- автор статей и страница «О компании» ---------- */
+.nav__extra { display: none; }
+@media (max-width: 1240px) { .nav[open] .nav__extra { display: block; } }
+.linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.byline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.byline a { color: inherit; font-weight: 600; }
+.byline__pic { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; }
+.byline__pic--ini, .author__pic--ini, .person__pic--ini { display: inline-grid; place-items: center; font-weight: 750; letter-spacing: .02em; color: var(--frame-ink);
+  background: radial-gradient(80% 80% at 30% 20%, oklch(0.62 0.13 62), var(--frame) 75%); box-shadow: inset 0 0 0 2px oklch(0.82 0.12 75 / .5); }
+.byline__pic--ini { font-size: .9rem; }
+.author { display: flex; gap: 18px; align-items: flex-start; max-width: 44rem; margin: 36px 0 8px; padding: 20px 22px; background: var(--board); border-radius: 10px; box-shadow: var(--shadow); border-left: 4px solid var(--signal-deep); }
+.author__pic { width: 88px; height: 88px; border-radius: 50%; object-fit: cover; flex: none; }
+.author__pic--ini { font-size: 1.6rem; }
+.author__text p { margin: 0; }
+.author__h { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+.author__name { font-size: 1.15rem; margin: 2px 0 0; }
+.author__name a { color: var(--ink); }
+.author__job { color: var(--accent); font-weight: 600; font-size: .92rem; margin-bottom: 8px !important; }
+.author__text p:last-child { color: var(--ink-2); font-size: .95rem; }
+@media (max-width: 560px) { .author { flex-direction: column; } .author__pic { width: 72px; height: 72px; } }
+.intro--person { display: flex; gap: 28px; align-items: center; }
+.person__pic { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; flex: none; position: relative; z-index: 1; box-shadow: 0 0 0 4px oklch(0.82 0.12 75 / .45), 0 14px 30px -12px oklch(0.1 0.02 50 / .8); }
+.person__pic--ini { font-size: 2.6rem; }
+@media (max-width: 620px) { .intro--person { flex-direction: column; align-items: flex-start; gap: 16px; } .person__pic { width: 96px; height: 96px; } .person__pic--ini { font-size: 1.8rem; } }
+.facts { list-style: none; margin: 0 0 28px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.facts li { background: var(--board); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); display: grid; gap: 2px; }
+.facts b { font-size: clamp(1.4rem, 2.6vw, 2rem); line-height: 1.1; color: var(--accent); font-weight: 800; }
+.facts span { color: var(--ink-2); font-size: .92rem; }
+@media (max-width: 760px) { .facts { grid-template-columns: 1fr 1fr; } }
+.team { margin: 40px 0; }
+.team .author { max-width: none; margin: 0 0 16px; }
+.cards4 { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.cards4 li { background: var(--board); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); border-top: 3px solid var(--signal-deep); }
+.cards4 h3 { font-size: 1.05rem; margin: 0 0 6px; }
+.cards4 p { margin: 0; color: var(--ink-2); font-size: .95rem; }

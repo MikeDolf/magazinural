@@ -25,7 +25,10 @@ SITE = {
     # Запасной вариант — свой Cloudflare Worker → Telegram (docs/zayavki-telegram.md):
     "form_endpoint": None,  # "https://zayavki.<ваш-аккаунт>.workers.dev"
     "metrika": 113770140,  # Яндекс.Метрика: счётчик и цели (zayavka, callback_open, tel_click, max_click)
-    "author": None,       # {"name": ..., "about": ...}
+    # Автор и научный редактор статей — со слов владельца (25.10.2026). Стаж, образование, награды — только когда владелец назовёт.
+    # photo — путь к фото в assets/ (квадрат); пока None, вместо фото — инициалы.
+    "author": {"name": "Павел Дмитриевич Никулов", "short": "П. Д. Никулов", "job": "Главный инженер-конструктор",
+               "url": "/o-kompanii/nikulov/", "photo": None},
 }
 
 # Факты о компании — со слов владельца (24.10.2026). Только то, что он подтвердил.

@@ -36,7 +36,7 @@ from data import objects_text as OT
 from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "35"  # меняйте при правке css/js
+VER = "37"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -145,7 +145,49 @@ def org_ld():
         org["foundingDate"] = str(COMPANY["since"])
     if SITE.get("max"):
         org["sameAs"] = [SITE["max"]]
+    if SITE.get("author"):
+        org["employee"] = {"@id": SITE["base_url"] + SITE["author"]["url"] + "#person"}
     return org
+
+
+def person_ld():
+    """Автор статей: Person с должностью и местом работы (страница автора и разметка статей ссылаются на один @id)."""
+    a = SITE["author"]
+    p = {"@context": "https://schema.org", "@type": "Person", "@id": SITE["base_url"] + a["url"] + "#person", "name": a["name"],
+         "jobTitle": a["job"], "worksFor": {"@id": ORG_ID}, "url": SITE["base_url"] + a["url"],
+         "knowsAbout": ["Деревянное домостроение", "Каркасные конструкции", "Расчёт снеговой и ветровой нагрузки", "Бани и беседки из дерева"]}
+    if a.get("photo"):
+        p["image"] = SITE["base_url"] + "/" + a["photo"]
+    return p
+
+
+def author_pic(cls="author__pic"):
+    """Фото автора или, пока фото нет, инициалы в круге."""
+    a = SITE["author"]
+    if a.get("photo"):
+        w, h = img_size(a["photo"])
+        return f'<img class="{cls}" src="/{e(a["photo"])}" alt="{e(a["name"])}, {e(a["job"].lower())}" width="{w}" height="{h}" loading="lazy">'
+    ini = a["name"].split()[0][0] + a["name"].split()[-1][0]  # «Павел … Никулов» → «ПН»
+    return f'<span class="{cls} {cls}--ini" aria-hidden="true">{e(ini)}</span>'
+
+
+def reviewed():
+    a = SITE.get("author")
+    return f' · проверил {e(a["job"].lower())} <a href="{a["url"]}">{e(a["short"])}</a>' if a else ""
+
+
+def author_card(h="Об авторе", tag="h2"):
+    """Карточка автора в конце статьи и на странице «О компании»."""
+    a = SITE.get("author")
+    if not a:
+        return ""
+    return (f'<aside class="author" aria-label="{e(h)}">{author_pic()}<div class="author__text"><p class="author__h">{e(h)}</p>'
+            f'<{tag} class="author__name"><a href="{a["url"]}">{e(a["name"])}</a></{tag}><p class="author__job">{e(a["job"])} «{e(SITE["name"])}»</p>'
+            f'<p>{e(AUTHOR_ABOUT)}</p></div></aside>')
+
+
+AUTHOR_ABOUT = ("Отвечает за конструкцию наших построек: рассчитывает каркас, кровлю и фундамент под снеговую и ветровую нагрузку Урала, "
+                "готовит рабочие чертежи и проверяет проекты перед производством. Проверяет статьи сайта, чтобы советы совпадали с тем, как мы строим.")
 
 
 def crumbs_ld(items):
@@ -301,7 +343,7 @@ def header(cta="#zayavka"):
     <a class="logo" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['tagline'])}</small></span></a>
     <details class="nav">
       <summary class="nav__toggle" aria-label="Разделы">{icon('menu')}<span class="nav__label">Разделы</span></summary>
-      <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li></ul></nav>
+      <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li><li class="nav__extra"><a href="{CALC_PATH}">Калькулятор</a></li><li class="nav__extra"><a href="/o-kompanii/">О компании</a></li></ul></nav>
     </details>
     {f'<button class="top__max" type="button" data-max aria-haspopup="dialog" aria-label="Написать в MAX">{MAX_ICON}<span>Написать в MAX</span></button>' if SITE.get("max") else ""}
     <button class="top__call" type="button" data-callback aria-haspopup="dialog" aria-label="Перезвоните мне">{icon('phone')}<span>Перезвоните мне</span></button>
@@ -739,7 +781,7 @@ def section_page(section, sub=None, city=None):
     if upd:
         schema.append({"@context": "https://schema.org", "@type": "WebPage", "url": SITE["base_url"] + path,
                        "name": h1, "dateModified": upd, "inLanguage": "ru", "publisher": {"@id": ORG_ID}})
-    updated_html = f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time></p>' if upd and text else ""
+    updated_html = f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time>{reviewed()}</p>' if upd and text else ""
     pic_items = [i for i in sorted(items, key=is_project) if i.get("photos")][:3]
     pics = ('<div class="intro__pics" aria-hidden="true">' + "".join(
         f'<img src="/{e(i["photos"][0])}" alt="" width="{img_size(i["photos"][0])[0]}" height="{img_size(i["photos"][0])[1]}"{" fetchpriority=high" if n == 0 else ""} decoding="async">'
@@ -793,7 +835,7 @@ def home_page():
     text, faq, upd = TEXTS.get("/"), FAQ.get("/", []), UPDATED.get("/")
     home_text = f'<section class="article" aria-label="О деревянных постройках">{md(text)}</section>' if text else ""
     if upd and text:
-        home_text += f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time></p>'
+        home_text += f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time>{reviewed()}</p>'
     home_text += faq_block(faq)
     schema = [faq_ld(faq)] if faq else []
     body = f"""{head(fit_title(title) if seo else title, desc, "/", True, schema)}{header()}
@@ -919,7 +961,8 @@ def article_page(a):
     body_html = md(a["body"], toc)
     trail = [("Главная", "/"), ("Статьи", "/stati/"), (a["h1"], a["url"])]
     author = SITE.get("author")
-    by = e(author["name"]) if author else f"Редакция «{e(SITE['name'])}»"
+    by = (f'{author_pic("byline__pic")}<span>Автор: <a href="{author["url"]}">{e(author["name"])}</a>, {e(author["job"].lower())}</span>'
+          if author else f"Редакция «{e(SITE['name'])}»")
     dates = f'Опубликовано <time datetime="{a["published"]}">{ru_date(a["published"])}</time>'
     if a.get("updated") and a["updated"] != a["published"]:
         dates += f' · обновлено <time datetime="{a["updated"]}">{ru_date(a["updated"])}</time>'
@@ -934,7 +977,8 @@ def article_page(a):
         f'<li><a href="{x["url"]}">{e(x["h1"])}{icon("arrow")}</a></li>' for x in more) + "</ul></section>") if more else ""
     art_ld = {"@context": "https://schema.org", "@type": "Article", "headline": a["h1"], "description": a["desc"],
               "datePublished": a["published"], "dateModified": a.get("updated") or a["published"],
-              "author": {"@type": "Person", "name": author["name"]} if author else {"@id": ORG_ID},
+              "author": {"@type": "Person", "@id": SITE["base_url"] + author["url"] + "#person", "name": author["name"], "jobTitle": author["job"],
+                         "url": SITE["base_url"] + author["url"]} if author else {"@id": ORG_ID},
               "publisher": {"@id": ORG_ID}, "image": SITE["base_url"] + (cover + ".jpg" if has_cover else "/assets/img/og.png"),
               "mainEntityOfPage": SITE["base_url"] + a["url"], "inLanguage": "ru"}
     schema = [crumbs_ld(trail), art_ld] + ([faq_ld(a["faq"])] if a.get("faq") else [])
@@ -945,7 +989,7 @@ def article_page(a):
     <header class="intro">
       <h1>{e(a["h1"])}</h1>
       <p class="intro__lead">{inline(a["lead"])}</p>
-      <p class="byline">{by} · {dates}</p>
+      <p class="byline">{by}<span>{dates}</span></p>
       {cover_html}
     </header>
     {toc_html}
@@ -956,6 +1000,7 @@ def article_page(a):
       <p><a class="btn btn--frame" href="#zayavka">Оставить заявку</a></p>
     </aside>
     <div class="article article--post">{faq_block(a.get("faq"))}</div>
+    {author_card()}
     <p class="totop"><a href="#main">Наверх ↑</a></p>
     {more_html}
   </article>
@@ -1298,44 +1343,115 @@ POLICY = """
 """
 
 
+TEAM = [
+    ("Проектный отдел", "Превращает идею в 3D-проект и рабочие чертежи, считает конструкцию и объём материалов."),
+    ("Отдел продаж", "Помогает выбрать постройку, размер и материалы под участок и бюджет, готовит смету."),
+    ("Своё производство", "Заготавливает и обрабатывает дерево, наносит огне- и биозащиту, изготавливает детали по проекту."),
+    ("Монтажные бригады", f"Бригады со стажем {COMPANY['crews']} собирают постройку на участке и убирают за собой."),
+]
+QUALITY = [
+    ("Считаем под Урал", "Каркас, кровлю и фундамент рассчитываем под снеговую и ветровую нагрузку Екатеринбурга и области."),
+    ("Готовим дерево заранее", "Детали обрабатываем на производстве: огне- и биозащита, пропитка, покраска в выбранный цвет."),
+    ("Фиксируем всё в договоре", "Материалы, сроки, порядок оплаты и гарантию прописываем в договоре, к нему прикладываем смету и проект."),
+    ("Показываем до стройки", "Делаем 3D-визуализацию: размеры, крышу и отделку можно поменять до начала работ."),
+]
+
+
 def about_page():
-    """О компании: факты со слов владельца (site.COMPANY, ADVANTAGES, STEPS) — без превосходных степеней."""
+    """О компании: факты со слов владельца (site.COMPANY, ADVANTAGES, STEPS, автор) — без превосходных степеней (38-ФЗ ст. 5)."""
     path = "/o-kompanii/"
-    area = ", ".join(AREA)
-    text = md(f"""
-«{SITE['name']}» проектирует и строит деревянные постройки для загородного участка с {COMPANY['since']} года: беседки, террасы и веранды, навесы, хозблоки, каркасные дома и бани, зимние деревянные горки, песочницы и детские домики. Работаем в Екатеринбурге и пригородах.
+    objs = [x for x in LISTINGS if x.get("photos") and not is_project(x)]
+    projs = [x for x in LISTINGS if x.get("photos") and is_project(x)]
+    facts = [(f"с {COMPANY['since']}", "года проектируем и строим из дерева"), (COMPANY["warranty"], "гарантия на постройку по договору"),
+             (COMPANY["crews"].replace("более ", "15+ ").split()[0] + " лет" if "15" in COMPANY["crews"] else COMPANY["crews"], "стаж монтажных бригад"),
+             (str(len(objs) + len(projs)), "объектов и проектов с фото на сайте")]
+    facts_html = '<ul class="facts">' + "".join(f"<li><b>{e(a)}</b><span>{e(b)}</span></li>" for a, b in facts) + "</ul>"
+    a = SITE.get("author")
+    team = "".join(f'<li><h3>{e(t)}</h3><p>{e(d)}</p></li>' for t, d in TEAM)
+    quality = "".join(f'<li><h3>{e(t)}</h3><p>{e(d)}</p></li>' for t, d in QUALITY)
+    works = ('<section class="related related--cards" aria-labelledby="ab-w"><h2 id="ab-w">Наши работы</h2><ul class="ocards">'
+             + "".join(obj_card(x) for x in objs[::max(1, len(objs) // 8)][:8])
+             + f'</ul><p class="cta-line">Все объекты с фото и паспортом — в разделе «<a href="{WORKS_PATH}">Наши работы</a>», 3D-проекты — в разделе «<a href="{PROJECTS_PATH}">Проекты</a>».</p></section>') if objs else ""
+    ip = SITE.get("ip") or {}
+    req = " · ".join(x for x in [f"ИП {ip['name']}" if ip.get("name") else "", f"ИНН {ip['inn']}" if ip.get("inn") else "",
+                                 f"ОГРНИП {ip['ogrnip']}" if ip.get("ogrnip") else "", ip.get("address", "")] if x)
+    lead = (f"«{SITE['name']}» — строительная компания из Екатеринбурга. С {COMPANY['since']} года проектируем и строим деревянные постройки "
+            "для загородного участка: бани, беседки, террасы и веранды, навесы, хозблоки и каркасные дома.")
+    title = f"О компании «{SITE['name']}»: строим из дерева с {COMPANY['since']} года"
+    desc = (f"О компании «{SITE['name']}»: с {COMPANY['since']} года строим бани, беседки, террасы и хозблоки в Екатеринбурге. "
+            f"Инженер-конструктор, свой цех, договор и гарантия {COMPANY['warranty']}.")
+    schema = [crumbs_ld([("Главная", "/"), ("О компании", path)]),
+              {"@context": "https://schema.org", "@type": "AboutPage", "url": SITE["base_url"] + path, "name": title,
+               "inLanguage": "ru", "mainEntity": {"@id": ORG_ID}}] + ([person_ld()] if a else [])
+    body = f"""{head(fit_title(title), desc, path, True, schema)}{header()}
+<main id="main"><div class="page">{crumbs([("Главная", "/"), ("О компании", path)])}
+<div class="intro"><div class="intro__text"><h1>О компании «{e(SITE['name'])}»</h1>
+<p class="intro__lead">{e(lead)}</p>
+<p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> {quiz_button()}</p></div></div>
+{facts_html}
+<section class="article about" aria-labelledby="ab-who">
+<h2 id="ab-who">Кто мы</h2>
+<p>Мы строим то, что делает участок удобным для жизни: <a href="/bani/">бани</a>, <a href="/besedki/">беседки</a> с мангалом и без, <a href="/terrasy/">террасы</a> и <a href="/verandy/">веранды</a>, <a href="/navesy/">навесы и карпорты</a>, <a href="/hozbloki/">хозблоки</a> и <a href="/karkasnye-doma/">каркасные дома</a>.
+Проект, производство деталей и монтаж ведём сами, без посредников, поэтому отвечаем за постройку целиком — от чертежа до уборки участка после сдачи.</p>
+<p>Работаем по официальному договору с ИП, смету расписываем по позициям, гарантию {e(COMPANY['warranty'])} прописываем в договоре. Предварительную цену можно узнать сразу — в <a href="{CALC_PATH}">калькуляторе стоимости</a>, точную назовём после замера.</p>
+</section>
+<section class="team" aria-labelledby="ab-team"><h2 id="ab-team">Кто работает над вашей постройкой</h2>
+{author_card("Главный инженер-конструктор", "h3") if a else ""}
+<ul class="cards4">{team}</ul></section>
+<section class="team" aria-labelledby="ab-q"><h2 id="ab-q">Как мы строим</h2><ul class="cards4">{quality}</ul></section>
+{works}
+{steps_block("about-steps-h")}
+{howto_block()}
+<section class="article about" aria-labelledby="ab-where">
+<h2 id="ab-where">Где работаем</h2>
+<p>{e(", ".join(AREA))}. Если вашего посёлка нет в списке — напишите в заявке или <button class="linkbtn" type="button" data-max>в MAX</button>, обсудим выезд.</p>
+<p>Перед стройкой проверьте, где постройка встанет по нормам: расстояния до забора, дома и колодца собраны в справочнике «<a href="/gde-postavit-postroyku/">Где поставить постройку</a>», а советы инженера — в <a href="/stati/">статьях</a>.</p>
+{('<h2>Реквизиты</h2><ul>' + "".join(f"<li>{e(x)}</li>" for x in req.split(" · ")) + "</ul><p>Работаем круглосуточно, без выходных.</p>") if req else ""}
+</section>
+</div>
+{lead_form()}
+</main>
+{footer()}"""
+    write(path, body)
 
-## Кто работает над вашей постройкой
 
-- **Проектный отдел** превращает идею в 3D-проект и рабочие чертежи, считает конструкцию и материалы.
-- **Отдел продаж** помогает выбрать постройку, размер и материалы под участок и бюджет.
-- **Своё производство** заготавливает и обрабатывает дерево, изготавливает детали по проекту.
-- **Монтажные бригады** со стажем {COMPANY['crews']} собирают постройку на вашем участке.
+def author_page():
+    """Страница автора статей: кто он, за что отвечает, какие статьи проверил (ProfilePage + Person)."""
+    a = SITE["author"]
+    path = a["url"]
+    trail = [("Главная", "/"), ("О компании", "/o-kompanii/"), (a["name"], path)]
+    h1 = f"{a['name']} — {a['job'].lower()}"
+    groups = []
+    for sec in SECTIONS:
+        arts = [x for x in ARTICLES if x["section"] == sec["key"]]
+        if arts:
+            groups.append(f'<h3>{e(sec["name"])}</h3><ul>' + "".join(f'<li><a href="{x["url"]}">{e(x["h1"])}</a></li>' for x in arts) + "</ul>")
+    text = f"""<p>{e(a['name'])} — {e(a['job'].lower())} компании «{e(SITE['name'])}». {e(AUTHOR_ABOUT)}</p>
+<h2>За что отвечает</h2>
+<ul>
+<li><b>Расчёт конструкции</b> — сечения бруса, шаг стропил и лаг, нагрузка на фундамент под снег и ветер Урала.</li>
+<li><b>Рабочие чертежи</b> — по ним производство готовит детали, а бригада собирает постройку на участке.</li>
+<li>Проверка проектов перед производством — размеры, узлы, кровля, вентиляция бани и пароизоляция.</li>
+<li>Изменения по просьбе заказчика — если нужно поменять размер, крышу или добавить печь, пересчитывает конструкцию.</li>
+</ul>
+<h2>Статьи</h2>
+<p>Все статьи раздела «<a href="/stati/">Статьи</a>» написаны или проверены {e(a['short'])}: советы в них совпадают с тем, как мы строим на самом деле. Если хотите задать вопрос по своей постройке — <a href="#zayavka">оставьте заявку</a>.</p>
+{''.join(groups)}"""
+    title = f"{a['name'].split()[0]} {a['name'].split()[-1]} — {a['job'].lower()} «{SITE['name']}»"
+    desc = (f"{a['name']} — {a['job'].lower()} «{SITE['name']}»: расчёт конструкций бань, беседок и домов под снег Урала, "
+            "чертежи и проверка статей.")
+    schema = [crumbs_ld(trail), {"@context": "https://schema.org", "@type": "ProfilePage", "url": SITE["base_url"] + path,
+                                 "name": title, "inLanguage": "ru", "mainEntity": person_ld()}]
+    body = f"""{head(fit_title(title), desc, path, True, schema)}{header()}
+<main id="main"><div class="page">{crumbs(trail)}
+<div class="intro intro--person">{author_pic("person__pic")}<div class="intro__text"><h1>{e(h1)}</h1>
+<p class="intro__lead">Инженер «{e(SITE['name'])}»: рассчитывает конструкции наших построек и проверяет статьи сайта.</p></div></div>
+<section class="article">{text}</section></div>
+{lead_form()}
+</main>
+{footer()}"""
+    write(path, body)
 
-## Наши условия
-
-- Официальный договор с ИП и смета по позициям — видно, за что вы платите.
-- Гарантия на постройку — {COMPANY['warranty']}, она прописана в договоре.
-- Предварительный расчёт по заявке на сайте и каталог построек онлайн.
-
-## Что строим
-
-- [Бани](/bani/) — каркасные, из бруса и бревна, бочки и модульные.
-- [Беседки](/besedki/) — открытые, закрытые, с мангалом и печью.
-- [Навесы и карпорты](/navesy/), [террасы](/terrasy/) и [веранды](/verandy/).
-- [Хозблоки](/hozbloki/), [сараи](/sarai/), [дровники](/drovniki/).
-- [Каркасные дома](/karkasnye-doma/), [горки](/gorki/), [песочницы](/pesochnicy/) и [детские домики](/detskie-domiki/).
-
-## Где работаем
-
-{area}. Если вашего посёлка нет в списке — напишите в заявке, обсудим выезд.
-
-## Перед стройкой
-
-Проверьте, где постройка встанет по нормам: расстояния до забора, дома и колодца собраны в справочнике [«Где поставить постройку»](/gde-postavit-postroyku/).
-""") + steps_block("about-steps-h")
-    simple_page(path, f"О компании «Магазин Урал»: строим из дерева с {COMPANY['since']} года", "О компании", text, index=True,
-                desc=f"«Магазин Урал» с {COMPANY['since']} года строит беседки, бани, террасы и хозблоки в Екатеринбурге и области: свой проектный отдел, производство, договор и гарантия 3 года.")
 
 def policy_page():
     ip = SITE.get("ip")
@@ -1402,6 +1518,9 @@ def main():
             indexable.append(a["url"])
     about_page()
     indexable.append("/o-kompanii/")
+    if SITE.get("author"):
+        author_page()
+        indexable.append(SITE["author"]["url"])
     if policy_page():
         indexable.append("/politika-konfidencialnosti/")
     not_found()
@@ -1410,7 +1529,7 @@ def main():
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + 1 + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + 1 + bool(SITE.get("author")) + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 
