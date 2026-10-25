@@ -909,8 +909,8 @@ def object_page(item):
     subs = [s for s in section["subs"] if s["url"] in sub_set]
     trail = [("Главная", "/"), (section["name"], section["url"])] + ([(subs[0]["name"], subs[0]["url"])] if subs else []) + [(full, path)]
     prod = {"@context": "https://schema.org", "@type": "Product", "name": full, "sku": item["id"],
-            "image": [SITE["base_url"] + "/" + ph for ph in photos], "brand": {"@id": ORG_ID},
-            "category": section["name"], "description": re.sub(r"\s+", " ", item.get("description") or item["title"])[:300]}
+            "image": [SITE["base_url"] + "/" + ph for ph in photos], "brand": {"@type": "Brand", "name": SITE["name"]},
+            "description": re.sub(r"\s+", " ", item.get("description") or item["title"])[:300]}
     if price:
         prod["offers"] = {"@type": "Offer", "priceCurrency": "RUB", "price": price, "url": SITE["base_url"] + path,
                           "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock"}
