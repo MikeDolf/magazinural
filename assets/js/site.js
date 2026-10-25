@@ -393,3 +393,12 @@ document.querySelectorAll("[data-more-btn]").forEach((b) => b.addEventListener("
   document.querySelectorAll(".grid[data-more] .is-more").forEach((c) => c.classList.remove("is-more"));
   b.closest(".more").remove();
 }));
+
+// Оглавление статьи: на широком экране — раскрытая колонка справа, на телефоне — свёрнуто; переход по пункту сворачивает.
+document.querySelectorAll("[data-toc]").forEach((t) => {
+  const wide = matchMedia("(min-width: 1100px)");
+  const sync = () => { t.open = wide.matches; };
+  sync();
+  wide.addEventListener("change", sync);
+  t.addEventListener("click", (ev) => { if (ev.target.closest("a") && !wide.matches) t.open = false; });
+});

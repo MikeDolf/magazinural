@@ -881,3 +881,65 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
 @media (max-width: 340px) { .drawer__all ul { grid-template-columns: 1fr; } }
 /* длинные надписи на кнопках переносятся, а не растягивают страницу */
 .btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.2; }
+
+/* ================= статьи: удобное чтение (26.10) ================= */
+/* оглавление: свёрнутая строка на телефоне, колонка справа на широком экране */
+.toc { max-width: 44rem; padding: 0; border: 1px solid var(--rule); border-radius: 14px; background: var(--board); box-shadow: var(--shadow); margin-top: 22px; }
+.toc summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 18px; cursor: pointer; font-weight: 700; }
+.toc summary::-webkit-details-marker { display: none; }
+.toc summary span { font-weight: 500; font-size: .85rem; color: var(--ink-3); margin-right: auto; }
+.toc summary::after { content: ""; width: 9px; height: 9px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); transform: rotate(45deg) translateY(-3px); transition: transform .3s var(--ease); }
+.toc[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+.toc ol { margin: 0; padding: 0 18px 14px 2.4em; display: grid; gap: 0; counter-reset: none; }
+.toc li { padding: 0; }
+.toc a { display: block; min-height: 0; padding: 7px 0; line-height: 1.35; font-size: .95rem; color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+.toc a.is-here { color: var(--accent); font-weight: 600; }
+@media (min-width: 1100px) {
+  .post { display: grid; grid-template-columns: minmax(0, 44rem) minmax(0, 1fr); column-gap: 48px; align-items: start; }
+  .post > * { grid-column: 1; }
+  .post > .crumbs, .post > .related { grid-column: 1 / -1; }
+  .post > .toc { grid-column: 2; grid-row: 2 / span 6; position: sticky; top: 84px; margin-top: 0; max-height: calc(100vh - 110px); overflow: auto; box-shadow: none; }
+  .post > .toc summary { pointer-events: none; }
+  .post > .toc summary::after { display: none; }
+}
+/* настоящее фото постройки вместо обложки с заголовком */
+.post__hero { margin: 22px 0 0; max-width: 44rem; }
+.post .post__cover { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 16px; box-shadow: var(--shadow); background: var(--frame-soft); margin: 0; }
+.post__hero figcaption, .post__fig figcaption { margin-top: 8px; font-size: .88rem; color: var(--ink-3); }
+.post__hero figcaption a, .post__fig figcaption a { color: var(--accent); }
+.post__fig { margin: 28px 0; }
+.post__fig img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 14px; box-shadow: var(--shadow); transition: transform .5s var(--ease); }
+.post__fig a:hover img { transform: scale(1.01); }
+/* таблицы в статьях */
+.ptable { margin: 26px 0; }
+.ptable .table-wrap { overflow-x: auto; border-radius: 14px; box-shadow: var(--shadow); background: var(--board); }
+.ptable table { width: 100%; border-collapse: collapse; font-size: .95rem; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.ptable caption { caption-side: top; text-align: left; font-weight: 700; padding: 14px 16px 10px; background: var(--board); }
+.ptable th, .ptable td { text-align: left; vertical-align: top; padding: 10px 14px; border-top: 1px solid var(--rule); }
+.ptable thead th { background: var(--frame); color: var(--frame-ink); font-size: .85rem; font-weight: 600; border-top: 0; white-space: nowrap; }
+.ptable tbody th { font-weight: 600; color: var(--ink); }
+.ptable tbody tr:nth-child(even) { background: oklch(0.97 0.012 80); }
+.ptable__note { margin: 8px 2px 0; font-size: .85rem; color: var(--ink-3); }
+@media (max-width: 560px) {
+  /* узкий экран: строка таблицы — карточка «заголовок + пары значение» */
+  .ptable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .ptable table, .ptable tbody, .ptable tr, .ptable th, .ptable td { display: block; }
+  .ptable tbody tr { padding: 10px 14px; border-top: 1px solid var(--rule); }
+  .ptable tbody th, .ptable td { border: 0; padding: 3px 0; }
+  .ptable tbody th { font-size: 1rem; padding-bottom: 4px; }
+  .ptable td::before { content: attr(data-th) ": "; font-weight: 600; color: var(--ink-3); }
+}
+/* текст статьи: воздух и читаемость */
+.article--post p, .article--post li { line-height: 1.7; }
+.article--post h2 { margin-top: 2.2em; scroll-margin-top: 90px; }
+.article--post h3 { margin-top: 1.6em; }
+/* правки 26.10: подпись таблицы на телефоне, кнопка в шапке, выравнивание статьи */
+@media (max-width: 560px) { .ptable caption { display: block; width: auto; } }
+@media (min-width: 621px) { .top__cta { white-space: nowrap; } }
+.post > .intro { padding-left: 0; padding-right: 0; }
+@media (min-width: 1241px) { .logo { flex: none; } .nav a { padding: 10px 8px; } }
+/* шапка: «Перезвоните мне» — только иконкой на любой ширине, иначе на 1400–1500 px не помещается кнопка заявки */
+.top__call { padding: 0; } .top__call span { display: none; }
+/* полное меню в шапке — от 1300 px, уже — кнопка «Меню» с панелью */
+@media (max-width: 1299px) { .menu-btn { display: inline-flex; } .nav { display: none; } }

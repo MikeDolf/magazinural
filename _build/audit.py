@@ -126,7 +126,9 @@ def check(path):
         if 'class="toc"' not in t:
             issues.append("нет оглавления")
         img = re.search(r'<img class="post__cover"[^>]*>', t)
-        if not img or 'alt="' not in img.group(0) or 'width=' not in img.group(0):
+        if "post--nophoto" in t:  # в разделе ещё нет наших фото — обложку-заглушку не ставим
+            pass
+        elif not img or 'alt="' not in img.group(0) or 'width=' not in img.group(0):
             issues.append("нет обложки с alt и размерами")
         if 'og:image" content="https://magazinural.ru/assets/img/og.png' in t:
             issues.append("og:image общий, нет своей картинки")

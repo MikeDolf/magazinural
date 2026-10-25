@@ -34,9 +34,10 @@ from data import norms as N
 from data.sizes import SIZES, PRICES as SIZE_PRICES
 from data import objects_text as OT
 from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
+from data.article_tables import ARTICLE_TABLES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "41"  # меняйте при правке css/js
+VER = "42"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -991,6 +992,63 @@ def ru_date(d):
     return f"{int(dd)} {MONTHS[int(m) - 1]} {y}"
 
 
+def plural(n, one, few, many):
+    n = abs(n) % 100
+    if 11 <= n <= 19:
+        return many
+    return one if n % 10 == 1 else few if 2 <= n % 10 <= 4 else many
+
+
+def article_photos(a):
+    """3 фото наших построек по теме статьи: разные для статей одного раздела (сдвиг по номеру статьи)."""
+    pool = sorted((x for x in LISTINGS if x["section"] == a["section"] and x.get("photos")), key=is_project)
+    if not pool:
+        return []
+    same = [x for x in ARTICLES if x["section"] == a["section"]]
+    k = same.index(a) * 3
+    out, seen = [], set()
+    for i in range(len(pool)):
+        it = pool[(k + i) % len(pool)]
+        if it["id"] not in seen:
+            seen.add(it["id"])
+            out.append((it, it["photos"][0]))
+        if len(out) == 3:
+            break
+    if len(out) < 3:  # мало объектов — добавляем другие фото тех же объектов
+        extra = [(it, ph) for it in pool for ph in it["photos"][1:]]
+        out += extra[: 3 - len(out)]
+    return out
+
+
+def figure_html(it, src):
+    w, h = img_size(src)
+    return (f'<figure class="post__fig"><a href="{object_url(it)}"><img src="/{e(src)}" alt="{e(obj_name(it))} — {"проект" if is_project(it) else "наш объект"}" '
+            f'width="{w}" height="{h}" loading="lazy" decoding="async"></a><figcaption>{e(obj_name(it))} · '
+            f'<a href="{object_url(it)}">{"смотреть проект" if is_project(it) else "фото и паспорт объекта"}</a></figcaption></figure>')
+
+
+def table_html(t):
+    head_ = "".join(f'<th scope="col">{inline(x)}</th>' for x in t["head"])
+    rows = "".join("<tr>" + "".join((f'<th scope="row">{inline(c)}</th>' if j == 0 else f'<td data-th="{e(t["head"][j])}">{inline(c)}</td>') for j, c in enumerate(r)) + "</tr>" for r in t["rows"])
+    note = f'<p class="ptable__note">{inline(t["note"])}</p>' if t.get("note") else ""
+    return (f'<div class="ptable"><div class="table-wrap"><table><caption>{inline(t["caption"])}</caption><thead><tr>{head_}</tr></thead>'
+            f'<tbody>{rows}</tbody></table></div>{note}</div>')
+
+
+def place_inserts(body_html, a, pics):
+    """Таблица — в конец раздела t["after"] (номер H2 с 1); фото — перед 3-м и 5-м H2 (или в конец, если разделов мало)."""
+    parts = re.split(r'(?=<h2 id="r\d+")', body_html)  # parts[0] — до первого H2, parts[i] — раздел i
+    add = {}
+    t = ARTICLE_TABLES.get(a["url"])
+    if t:
+        i = min(max(1, t["after"]), len(parts) - 1)
+        add.setdefault(i, []).append(table_html(t))
+    for n, (it, src) in enumerate(pics):
+        i = min(2 + n * 2, len(parts) - 1)
+        add.setdefault(i, []).append(figure_html(it, src))
+    return "".join(p + "".join(add.get(i, [])) for i, p in enumerate(parts))
+
+
 def article_page(a):
     section = BY_KEY[a["section"]]
     toc = []
@@ -1002,12 +1060,22 @@ def article_page(a):
     dates = f'Опубликовано <time datetime="{a["published"]}">{ru_date(a["published"])}</time>'
     if a.get("updated") and a["updated"] != a["published"]:
         dates += f' · обновлено <time datetime="{a["updated"]}">{ru_date(a["updated"])}</time>'
-    toc_html = ('<nav class="toc" aria-labelledby="toc-h"><h2 id="toc-h">Содержание</h2><ol>' + "".join(
-        f'<li><a href="#{i}">{e(t.replace("**", ""))}</a></li>' for i, t in toc) + "</ol></nav>") if len(toc) > 2 else ""
+    # Оглавление: на телефоне свёрнуто в одну строку, на широком экране — колонка справа (site.js раскрывает).
+    toc_html = (f'<details class="toc" data-toc><summary>Содержание <span>{len(toc)} {plural(len(toc), "раздел", "раздела", "разделов")}</span></summary><ol>' + "".join(
+        f'<li><a href="#{i}">{e(t.replace("**", ""))}</a></li>' for i, t in toc) + "</ol></details>") if len(toc) > 2 else ""
+    # Картинка соцсетей (og) — сгенерированная обложка; в самой статье — настоящие фото наших построек по теме.
     cover = f"/assets/img/stati/{a['slug']}"
     has_cover = (ROOT / cover.lstrip("/")).with_suffix(".webp").exists()
-    cover_html = (f'<img class="post__cover" src="{cover}.webp" alt="Обложка статьи «{e(a["h1"])}»" width="1200" height="630" '
-                  f'decoding="async" fetchpriority="high">') if has_cover else ""
+    pics = article_photos(a)
+    cover_html = ""
+    if pics:
+        it, src = pics[0]
+        w, h = img_size(src)
+        cover_html = (f'<figure class="post__hero"><img class="post__cover" src="/{e(src)}" alt="{e(a["h1"].split(":")[0])}: {e(obj_name(it))} — '
+                      f'{"проект" if is_project(it) else "построили мы"}" width="{w}" height="{h}" decoding="async" fetchpriority="high">'
+                      f'<figcaption>{e(obj_name(it))} · <a href="{object_url(it)}">{"смотреть проект" if is_project(it) else "фото и паспорт объекта"}</a></figcaption></figure>')
+    body_html = place_inserts(body_html, a, pics[1:])
+    minutes = max(3, round(len(re.findall(r"\w+", a["body"])) / 180))
     more = [x for x in ARTICLES if x["section"] == a["section"] and x is not a][:4]
     more_html = ('<section class="related" aria-labelledby="more-h"><h2 id="more-h">Ещё по теме</h2><ul>' + "".join(
         f'<li><a href="{x["url"]}">{e(x["h1"])}{icon("arrow")}</a></li>' for x in more) + "</ul></section>") if more else ""
@@ -1020,12 +1088,12 @@ def article_page(a):
     schema = [crumbs_ld(trail), art_ld] + ([faq_ld(a["faq"])] if a.get("faq") else [])
     body = f"""{head(fit_title(a["title"]), a["desc"], a["url"], True, schema, "article", cover + ".jpg" if has_cover else None)}{header()}
 <main id="main">
-  <article class="page post">
+  <article class="page post{"" if pics else " post--nophoto"}">
     {crumbs(trail)}
     <header class="intro">
       <h1>{e(a["h1"])}</h1>
       <p class="intro__lead">{inline(a["lead"])}</p>
-      <p class="byline">{by}<span>{dates}</span></p>
+      <p class="byline">{by}<span>{dates} · читать {minutes} мин</span></p>
       {cover_html}
     </header>
     {toc_html}
