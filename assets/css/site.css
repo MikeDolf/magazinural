@@ -714,3 +714,10 @@ h2{letter-spacing:-0.015em}
 .cards4 li { background: var(--board); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); border-top: 3px solid var(--signal-deep); }
 .cards4 h3 { font-size: 1.05rem; margin: 0 0 6px; }
 .cards4 p { margin: 0; color: var(--ink-2); font-size: .95rem; }
+/* меню разделов на телефоне и планшете: на всю ширину экрана под шапкой, а не от кнопки (кнопка сдвигается влево) */
+@media (max-width: 1240px) {
+  .nav[open] > nav { position: fixed; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); top: 76px; min-width: 0;
+    max-height: calc(100dvh - 92px); overflow-y: auto; z-index: 20; }
+  .nav[open] ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px; }
+}
+@media (min-width: 700px) and (max-width: 1240px) { .nav[open] > nav { left: auto; width: 360px; } }

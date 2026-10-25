@@ -36,7 +36,7 @@ from data import objects_text as OT
 from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "37"  # меняйте при правке css/js
+VER = "38"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
