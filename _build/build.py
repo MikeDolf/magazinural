@@ -912,8 +912,20 @@ def object_page(item):
             "image": [SITE["base_url"] + "/" + ph for ph in photos], "brand": {"@type": "Brand", "name": SITE["name"]},
             "description": re.sub(r"\s+", " ", item.get("description") or item["title"])[:300]}
     if price:
+        days = int(re.search(r"\d+", item.get("duration") or "14").group())
         prod["offers"] = {"@type": "Offer", "priceCurrency": "RUB", "price": price, "url": SITE["base_url"] + path,
-                          "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock"}
+                          "seller": {"@id": ORG_ID}, "availability": "https://schema.org/InStock",
+                          # доставка и монтаж по Екатеринбургу — в цене (site.DELIVERY); индексы 620xxx
+                          "shippingDetails": {"@type": "OfferShippingDetails",
+                                              "shippingRate": {"@type": "MonetaryAmount", "value": 0, "currency": "RUB"},
+                                              "shippingDestination": {"@type": "DefinedRegion", "addressCountry": "RU",
+                                                                      "postalCodeRange": {"@type": "PostalCodeRangeSpecification", "postalCodeBegin": "620000", "postalCodeEnd": "620999"}},
+                                              "deliveryTime": {"@type": "ShippingDeliveryTime",
+                                                               "handlingTime": {"@type": "QuantitativeValue", "minValue": days, "maxValue": days * 2, "unitCode": "DAY"},
+                                                               "transitTime": {"@type": "QuantitativeValue", "minValue": 0, "maxValue": 1, "unitCode": "DAY"}}},
+                          # изготовление по индивидуальному заказу — возврата нет (ЗоЗПП ст. 26.1), недостатки — по гарантии
+                          "hasMerchantReturnPolicy": {"@type": "MerchantReturnPolicy", "applicableCountry": "RU",
+                                                      "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"}}
     title = fit_title(fit_len(full, ([" — проект и цена"] if proj and item.get("price_from") else [" — проект"] if proj else []) + [f', {item["place"]}' if item.get("place") else " в Екатеринбурге", " — фото и паспорт", " — фото объекта", ", фото", " — наш объект"] + ([", цена «от»"] if item.get("price_from") else []), 50, 60))
     facts = ", ".join(x for x in (item.get("size"), item.get("material"), item.get("place"), item.get("built") and f'сдан {item["built"]}') if x)
     lead_txt = item.get("lead") or ""
