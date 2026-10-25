@@ -943,3 +943,8 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
 .top__call { padding: 0; } .top__call span { display: none; }
 /* полное меню в шапке — от 1300 px, уже — кнопка «Меню» с панелью */
 @media (max-width: 1299px) { .menu-btn { display: inline-flex; } .nav { display: none; } }
+/* карточки с фото внутри блоков .related: без отступов и линий списка ссылок — фото на всю ширину карточки */
+.related .ocards { border-top: 0; }
+.related .ocards > li { border-bottom: 0; }
+.related .ocard a { padding: 0; gap: 0; align-items: stretch; justify-content: flex-start; font-weight: inherit; }
+.related .ocard a:hover { color: inherit; }
