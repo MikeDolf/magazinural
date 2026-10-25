@@ -36,7 +36,7 @@ from data import objects_text as OT
 from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "39"  # меняйте при правке css/js
+VER = "40"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -341,6 +341,7 @@ def header(cta="#zayavka"):
     return f"""<header class="top">
   <div class="top__in">
     <a class="logo" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['tagline'])}</small></span></a>
+    <button class="menu-btn" type="button" data-menu aria-haspopup="dialog" aria-controls="menu" aria-label="Открыть меню"><span class="menu-btn__bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="menu-btn__t">Меню</span></button>
     <details class="nav">
       <summary class="nav__toggle" aria-label="Разделы">{icon('menu')}<span class="nav__label">Разделы</span></summary>
       <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li><li class="nav__extra"><a href="{CALC_PATH}">Калькулятор</a></li><li class="nav__extra"><a href="/o-kompanii/">О компании</a></li></ul></nav>
@@ -372,6 +373,7 @@ def footer():
   </div>
 </footer>
 {callback_dialog()}
+{drawer()}
 {max_dialog()}
 {quiz_dialog()}
 <script src="/assets/js/calc-data.js?v={VER}" defer></script>
@@ -438,6 +440,40 @@ def callback_dialog():
     <div class="form__actions"><button class="btn btn--frame" type="submit">Перезвоните мне</button>
       <p class="form__status" role="status" aria-live="polite" hidden></p></div>
   </form>
+</dialog>"""
+
+
+def drawer():
+    """Меню на телефоне и планшете: панель справа — разделы с фото, все постройки, полезное, компания, кнопки действий."""
+    main = [k for k in ["besedka", "banya", "naves", "terrasa", "hozblok", "karkas"] if k in BY_KEY]
+    tiles = "".join(
+        f'<li style="--i:{n}"><a class="dtile" href="{BY_KEY[k]["url"]}"><img src="/assets/img/calc/{k}.webp" alt="" width="360" height="240" loading="lazy" decoding="async">'
+        f'<span>{e(BY_KEY[k]["name"])}</span></a></li>' for n, k in enumerate(main))
+    rest = "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in SECTIONS if s["key"] not in main)
+    def links(items):
+        return '<ul class="drawer__links">' + "".join(f'<li><a href="{u}">{e(t)}{icon("arrow")}</a></li>' for u, t in items) + "</ul>"
+    useful = [(CALC_PATH, "Калькулятор стоимости"), ("/nashi-raboty/", "Наши работы"), ("/proekty/", "Проекты"), ("/stati/", "Статьи"),
+              ("/gde-postavit-postroyku/", "Где поставить постройку")]
+    company = [("/o-kompanii/", "О компании"), ("/dostavka-i-oplata/", "Доставка и оплата"), ("/garantiya/", "Гарантия"),
+               ("/voprosy-i-otvety/", "Вопросы и ответы")] + ([(CONTACTS_PATH, "Контакты")] if has_contacts() else [])
+    return f"""<dialog class="drawer" id="menu" aria-label="Меню сайта">
+  <div class="drawer__head"><a class="logo" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['tagline'])}</small></span></a>
+    <button class="drawer__close" type="button" data-dialog-close aria-label="Закрыть меню"><span aria-hidden="true"></span></button></div>
+  <div class="drawer__body">
+    <p class="drawer__h" style="--i:0">Что строим</p>
+    <ul class="drawer__tiles">{tiles}</ul>
+    <details class="drawer__all" style="--i:6"><summary>Все постройки <span>{len(SECTIONS)}</span></summary><ul>{rest}</ul></details>
+    <p class="drawer__h" style="--i:7">Полезное</p>
+    <div style="--i:8">{links(useful)}</div>
+    <p class="drawer__h" style="--i:9">Компания</p>
+    <div style="--i:10">{links(company)}</div>
+    <p class="drawer__meta" style="--i:11">{e(SITE.get("hours") or "")} · Екатеринбург и пригороды</p>
+  </div>
+  <div class="drawer__foot">
+    {quiz_button(label="Рассчитать стоимость", cls="btn btn--enamel drawer__cta")}
+    {f'<button class="drawer__ic" type="button" data-max aria-label="Написать в MAX">{MAX_ICON}</button>' if SITE.get("max") else ""}
+    <button class="drawer__ic drawer__ic--call" type="button" data-callback aria-label="Перезвоните мне">{icon('phone')}</button>
+  </div>
 </dialog>"""
 
 

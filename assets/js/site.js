@@ -119,21 +119,41 @@ document.querySelectorAll(".norms").forEach((box) => {
   });
 });
 
-// Окна: «Перезвоните мне», «Написать в MAX», квиз. Открытое окно закрываем, прежде чем открыть другое.
+// Окна: меню, «Перезвоните мне», «Написать в MAX», квиз. Открытое окно закрываем, прежде чем открыть другое.
+// Закрытие с анимацией: класс is-closing, по окончании — close(). Пока окно открыто, страница под ним не прокручивается.
+const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+// dialog.close() (его зовёт и общий обработчик форм) закрывает с анимацией; настоящее закрытие — d._close().
+document.querySelectorAll("dialog").forEach((d) => { d._close = d.close.bind(d); d.close = () => closeDlg(d); });
+const closeDlg = (d) => {
+  if (!d.open || d.classList.contains("is-closing")) return;
+  if (reduce.matches) { d._close(); return; }
+  d.classList.add("is-closing");
+  let done = false;
+  const fin = () => { if (done) return; done = true; d.classList.remove("is-closing"); d._close(); };
+  d.addEventListener("animationend", fin, { once: true });
+  setTimeout(fin, 400);  // если анимация не запустилась
+};
 const dlgOpen = (id) => {
   const d = document.getElementById(id);
   if (!d || typeof d.showModal !== "function") return null;
-  document.querySelectorAll("dialog[open]").forEach((x) => x.close());
+  document.querySelectorAll("dialog[open]").forEach((x) => { x.classList.remove("is-closing"); x._close(); });
   d.showModal();
+  document.documentElement.classList.add("has-dlg");
   return d;
 };
-document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (ev) => {
-  if (ev.target === d || ev.target.closest("[data-dialog-close], [data-callback-close]")) d.close();
-}));
+document.querySelectorAll("dialog").forEach((d) => {
+  d.addEventListener("click", (ev) => {
+    if (ev.target === d || ev.target.closest("[data-dialog-close], [data-callback-close]")) closeDlg(d);
+  });
+  d.addEventListener("cancel", (ev) => { ev.preventDefault(); closeDlg(d); });  // Esc — тоже с анимацией
+  d.addEventListener("close", () => { if (!document.querySelector("dialog[open]")) document.documentElement.classList.remove("has-dlg"); });
+});
 document.addEventListener("click", (ev) => {
-  const b = ev.target.closest("[data-callback], [data-max], [data-quiz]");
+  const b = ev.target.closest("[data-callback], [data-max], [data-quiz], [data-menu]");
   if (!b) return;
-  if (b.matches("[data-callback]")) {
+  if (b.matches("[data-menu]")) {
+    if (!dlgOpen("menu")) location.href = "/#razdely";
+  } else if (b.matches("[data-callback]")) {
     const d = dlgOpen("callback");
     if (d) d.querySelector("input[name=name]").focus();
     else location.href = document.getElementById("zayavka") ? "#zayavka" : "/#zayavka";  // старые браузеры без <dialog>
@@ -146,6 +166,39 @@ document.addEventListener("click", (ev) => {
     else location.href = "/kalkulyator/" + (b.dataset.quiz ? `?type=${b.dataset.quiz}` : "");
   }
 });
+// Меню: отмечаем текущий раздел; ссылка-якорь на этой же странице закрывает меню.
+const menu = document.getElementById("menu");
+if (menu) {
+  menu.querySelectorAll("a[href]").forEach((a) => {
+    const href = a.getAttribute("href");
+    if (href !== "/" && location.pathname.startsWith(href)) a.setAttribute("aria-current", "page");
+    a.addEventListener("click", () => { if (href.includes("#")) closeDlg(menu); });
+  });
+}
+
+// Шапка: тень и компактная высота после начала прокрутки.
+const topBar = document.querySelector(".top");
+if (topBar) {
+  const onTop = () => topBar.classList.toggle("is-scrolled", scrollY > 8);
+  addEventListener("scroll", onTop, { passive: true });
+  onTop();
+}
+
+// Блоки плавно появляются при прокрутке (только то, что ниже первого экрана; без JS и при reduced-motion всё видно сразу).
+if ("IntersectionObserver" in window && !reduce.matches) {
+  const sel = ".passport, .ocards > li, .size, .adv > li, .dir__item, .cards4 > li, .facts > li, .howto__card, .faq__item, .steps, .lead__in, .author, .calc__form, .calc__result, .related li, .post__cover, .toc";
+  const io = new IntersectionObserver((list) => list.forEach((en) => {
+    if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+  }), { rootMargin: "0px 0px -6% 0px" });
+  document.querySelectorAll(sel).forEach((el) => {
+    if (el.closest("dialog")) return;
+    if (el.getBoundingClientRect().top < innerHeight * 0.95) return;
+    const sib = [...el.parentElement.children].indexOf(el);
+    el.style.setProperty("--d", `${(sib % 4) * 70}ms`);
+    el.classList.add("rv");
+    io.observe(el);
+  });
+}
 
 // Плавающая кнопка MAX: появляется, когда первый экран прокручен.
 const fab = document.querySelector(".fab");
