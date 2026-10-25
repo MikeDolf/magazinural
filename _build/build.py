@@ -33,9 +33,10 @@ from data.seo import SEO
 from data import norms as N
 from data.sizes import SIZES, PRICES as SIZE_PRICES
 from data import objects_text as OT
+from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "34"  # меняйте при правке css/js
+VER = "35"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -241,6 +242,14 @@ LOGO = ('<svg class="logo__mark" viewBox="0 0 64 64" aria-hidden="true">'
         '<rect x="40" y="34" width="5" height="5" rx="1" fill="var(--signal)"/></svg>')
 
 
+# Знак MAX: пузырь чата на градиенте (градиент — в спрайте MAX_DEFS, один на страницу).
+MAX_DEFS = ('<svg class="sprite" aria-hidden="true" focusable="false"><defs><linearGradient id="mxg" x1="0" y1="0" x2="1" y2="1">'
+            '<stop offset="0" stop-color="#41c7ff"/><stop offset=".5" stop-color="#4b5cff"/><stop offset="1" stop-color="#9a3cf5"/></linearGradient></defs></svg>')
+MAX_ICON = ('<svg class="mx" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><rect width="48" height="48" rx="13" fill="url(#mxg)"/>'
+            '<path d="M24.5 11.5a12 12 0 1 1-6.8 21.9L12 36l1.9-6.1A12 12 0 0 1 24.5 11.5z" fill="#fff"/>'
+            '<circle cx="24.5" cy="23.5" r="6.3" fill="url(#mxg)"/></svg>')
+
+
 # ---------- каркас страницы ----------
 
 def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
@@ -279,7 +288,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <meta name="theme-color" content="#2f1d11">
 {blocks}
 {metrika_head()}</head>
-<body>{metrika_noscript()}
+<body>{metrika_noscript()}{MAX_DEFS if SITE.get("max") else ""}
 <a class="skip" href="#main">К содержанию</a>
 """
 
@@ -294,6 +303,7 @@ def header(cta="#zayavka"):
       <summary class="nav__toggle" aria-label="Разделы">{icon('menu')}<span class="nav__label">Разделы</span></summary>
       <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li></ul></nav>
     </details>
+    {f'<button class="top__max" type="button" data-max aria-haspopup="dialog" aria-label="Написать в MAX">{MAX_ICON}<span>Написать в MAX</span></button>' if SITE.get("max") else ""}
     <button class="top__call" type="button" data-callback aria-haspopup="dialog" aria-label="Перезвоните мне">{icon('phone')}<span>Перезвоните мне</span></button>
     <a class="btn btn--enamel top__cta" href="{cta}"><span class="top__cta-long">Оставить заявку</span><span class="top__cta-short">Заявка</span></a>
   </div>
@@ -310,7 +320,7 @@ def footer():
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
                 + (f'<li><a href="{CONTACTS_PATH}">Контакты</a></li>' if has_contacts() else "")
-                + '<li><a href="/nashi-raboty/">Наши работы</a></li><li><a href="/proekty/">Проекты</a></li><li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
+                + f'<li><a href="{CALC_PATH}">Калькулятор стоимости</a></li><li><a href="/nashi-raboty/">Наши работы</a></li><li><a href="/proekty/">Проекты</a></li><li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
@@ -320,6 +330,9 @@ def footer():
   </div>
 </footer>
 {callback_dialog()}
+{max_dialog()}
+{quiz_dialog()}
+<script src="/assets/js/calc-data.js?v={VER}" defer></script>
 <script src="/assets/js/site.js?v={VER}" defer></script>
 </body>
 </html>
@@ -384,6 +397,106 @@ def callback_dialog():
       <p class="form__status" role="status" aria-live="polite" hidden></p></div>
   </form>
 </dialog>"""
+
+
+def max_dialog():
+    """«Написать в MAX»: окно из шапки и плавающей кнопки. На компьютере — QR-код, на телефоне — кнопка в приложение."""
+    if not SITE.get("max"):
+        return ""
+    return f"""<dialog class="callback mxd" id="max" aria-labelledby="max-h">
+  <div class="callback__form">
+    <div class="callback__head"><h2 id="max-h">{MAX_ICON}Напишите нам в MAX</h2>
+      <button class="callback__close" type="button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <p>Отвечаем круглосуточно. Пришлите фото участка, эскиз или понравившуюся постройку — подскажем решение и примерную цену.</p>
+    <div class="mxd__qr"><img src="/assets/img/max-qr.svg" width="148" height="148" alt="QR-код чата «{e(SITE['name'])}» в MAX" loading="lazy">
+      <p>Наведите камеру телефона на код — чат откроется в приложении MAX.</p></div>
+    <a class="btn btn--max" href="{e(SITE['max'])}" target="_blank" rel="noopener">{MAX_ICON}Открыть чат в MAX</a>
+    <p class="mxd__alt">Удобнее по-другому? <button type="button" data-callback>Перезвоните мне</button><button type="button" data-quiz>Рассчитать стоимость</button></p>
+  </div>
+</dialog>
+<button class="fab" type="button" data-max aria-haspopup="dialog" aria-label="Написать в MAX">{MAX_ICON}</button>"""
+
+
+# ---------- калькулятор и квиз ----------
+
+CALC_PATH = "/kalkulyator/"
+CALC_KEYS = {t["key"] for t in CALC}
+
+
+def calc_area(t, size):
+    if t.get("unit") == "area":
+        return float(size)
+    w, l = size.replace(",", ".").split("×")
+    return float(w) * float(l)
+
+
+def calc_base(t, area):
+    """Цена базовой комплектации по опорным точкам — та же формула, что в site.js (calcPrice)."""
+    pts = t["points"]
+    if area <= pts[0][0]:
+        v = area * pts[0][1] / pts[0][0]
+    elif area >= pts[-1][0]:
+        (a1, p1), (a2, p2) = pts[-2], pts[-1]
+        v = p2 + (area - a2) * (p2 - p1) / (a2 - a1)
+    else:
+        for (a1, p1), (a2, p2) in zip(pts, pts[1:]):
+            if a1 <= area <= a2:
+                v = p1 + (area - a1) * (p2 - p1) / (a2 - a1)
+                break
+    return max(t["min"], v)
+
+
+def calc_round(v):
+    return int(round(v / 5000) * 5000)
+
+
+def size_label(t, size):
+    return f"{size} м²" if t.get("unit") == "area" else f"{size} м"
+
+
+def calc_data_js():
+    """assets/js/calc-data.js: типы, размеры и опции для квиза и калькулятора (site.js)."""
+    types = []
+    for t in CALC:
+        sec = BY_KEY[t["key"]]
+        types.append({"key": t["key"], "name": t["name"], "section": sec["name"], "url": sec["url"], "unit": t.get("unit", "dim"),
+                      "sizes": t["sizes"], "custom": t.get("custom", False), "points": t["points"], "min": t["min"],
+                      "img": f'/assets/img/calc/{t["key"]}.webp',
+                      "from": calc_round(calc_base(t, calc_area(t, t["sizes"][0])) * CALC_RANGE[0]),
+                      "options": [{"name": g, "items": [{"name": n, **v} for n, v in items]} for g, items in t["options"]]})
+    data = {"types": types, "range": CALC_RANGE, "places": CALC_PLACES, "when": WHEN_OPTIONS, "note": CALC_NOTE}
+    (ROOT / "assets" / "js" / "calc-data.js").write_text(
+        "// Собирается из _build/data/calc.py (python3 _build/build.py) — не править руками.\nwindow.CALC = "
+        + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
+
+
+def quiz_dialog():
+    """Квиз «Рассчитать стоимость»: шаги рисует site.js из calc-data.js, форма в конце — общая отправка заявок."""
+    return f"""<dialog class="callback quiz" id="quiz" aria-labelledby="quiz-h">
+  <div class="quiz__in">
+    <div class="callback__head"><h2 id="quiz-h">Рассчитать стоимость</h2>
+      <button class="callback__close" type="button" data-dialog-close aria-label="Закрыть">×</button></div>
+    <div class="quiz__bar" aria-hidden="true"><span></span></div>
+    <div data-calc="quiz"></div>
+    <form class="form quiz__form" novalidate data-form hidden>
+      <p class="quiz__lead">Оставьте телефон — пришлём точный расчёт и перезвоним, если появятся вопросы.</p>
+      <input type="hidden" name="type"><input type="hidden" name="size"><input type="hidden" name="place"><input type="hidden" name="when">
+      <input type="hidden" name="note"><input type="hidden" name="estimate">
+      <label class="field"><span>Имя</span><input name="name" autocomplete="name"></label>
+      <label class="field"><span>Телефон <i aria-hidden="true">*</i></span><input name="phone" type="tel" autocomplete="tel" required placeholder="+7" inputmode="tel" aria-describedby="qz-phone-err"><em class="field__err" id="qz-phone-err" hidden>Укажите телефон, чтобы мы могли прислать расчёт</em></label>
+      <label class="hp" aria-hidden="true">Не заполняйте <input name="website" tabindex="-1" autocomplete="off"></label>
+      <label class="agree"><input type="checkbox" name="agree" required> <span>Согласен на обработку персональных данных по <a href="/politika-konfidencialnosti/">политике</a></span></label>
+      <div class="form__actions"><button class="btn btn--ghost" type="button" data-calc-back>Назад</button><button class="btn btn--frame" type="submit">Получить точный расчёт</button>
+        <p class="form__status" role="status" aria-live="polite" hidden></p></div>
+    </form>
+  </div>
+</dialog>"""
+
+
+def quiz_button(key=None, label="Рассчитать стоимость", cls="btn btn--ghost"):
+    """Кнопка квиза; key — сразу выбрать постройку (если она есть в калькуляторе)."""
+    k = f' data-quiz="{key}"' if key in CALC_KEYS else " data-quiz"
+    return f'<button class="{cls}" type="button"{k} aria-haspopup="dialog">{label}</button>'
 
 
 def howto_block():
@@ -550,7 +663,8 @@ def sizes_block(section):
         + (f'<p class="size__price">от <b>{rub(prices[dim])}</b></p>' if dim in prices else "")
         + f'<a class="btn btn--ghost" href="#zayavka" data-size="{e(dim)}">Рассчитать {e(dim.split(" м")[0])}</a></li>' for dim, t, fit in sizes)
     return (f'<section class="sizes" aria-labelledby="sizes-h"><h2 id="sizes-h">Популярные размеры</h2>'
-            f'<p class="sizes__note">{note}</p><ul class="sizes__list">{cards}</ul></section>')
+            f'<p class="sizes__note">{note}' + (f' Другой размер или комплектация — <a href="{CALC_PATH}?type={section["key"]}">посчитайте в калькуляторе</a>.' if section["key"] in CALC_KEYS else "")
+            + f'</p><ul class="sizes__list">{cards}</ul></section>')
 
 
 def section_page(section, sub=None, city=None):
@@ -637,7 +751,7 @@ def section_page(section, sub=None, city=None):
     <div class="intro{" intro--pics" if pics else ""}">
       <div class="intro__text"><h1>{e(h1)}</h1>
       <p class="intro__lead">{e(lead)}</p>
-      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>
+      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> {quiz_button(section["key"]) if section["key"] in CALC_KEYS else '<button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button>'}</p></div>
       {pics}
     </div>
     {advantages_block()}
@@ -688,7 +802,7 @@ def home_page():
     <div class="intro intro--home">
       <h1>{e(seo[0]) if seo else "Деревянные постройки под ключ в Екатеринбурге"}</h1>
       <p class="intro__lead">{home_lead}</p>
-      <p><a class="btn btn--frame" href="#zayavka">Рассчитать смету</a> <a class="btn btn--ghost" href="#razdely">Что строим</a></p>
+      <p><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> {quiz_button()} <a class="btn btn--ghost" href="#razdely">Что строим</a></p>
     </div>
     {advantages_block()}
     {steps_block()}
@@ -1050,6 +1164,72 @@ def works_page():
     write(WORKS_PATH, body)
     return bool(items)
 
+CALC_FAQ = [
+    ("Насколько точна цена из калькулятора?",
+     "Калькулятор считает по средним ценам рынка Екатеринбурга для базовой комплектации, поэтому цена примерная. "
+     "Точную стоимость называем после замера и сметы: на неё влияют грунт, подъезд к участку, материалы и отделка."),
+    ("Что входит в базовую комплектацию?",
+     "Фундамент на винтовых сваях, каркас, кровля, пол и антисептическая обработка дерева. "
+     "Доставка и монтаж в Екатеринбурге входят в цену, доставку в пригороды и область считаем в смете."),
+    ("Можно построить по своему размеру?",
+     "Да, в калькуляторе можно указать свою ширину и длину. Размеры, материалы и планировку подгоняем под ваш участок, "
+     "а по готовому эскизу проектный отдел сделает 3D-проект."),
+    ("Как получить точную смету?",
+     "Нажмите «Получить точный расчёт» и оставьте телефон. Мы перезвоним, уточним детали и, если нужно, приедем на замер, "
+     "а смету по позициям закрепим в договоре."),
+]
+
+
+def calc_page():
+    """Калькулятор стоимости: виджет (site.js), цены «от» по размерам, текст, FAQ, форма заявки."""
+    path = CALC_PATH
+    h1 = "Калькулятор стоимости беседки, бани и других построек"
+    title = "Калькулятор стоимости беседки, бани, навеса онлайн"
+    desc = ("Калькулятор стоимости беседки, бани, террасы, навеса и хозблока онлайн: выберите размер и комплектацию — "
+            "покажем примерную цену по рынку Екатеринбурга.")
+    rows = []
+    for t in CALC:
+        cells = "".join(f"<li>{e(size_label(t, sz))} — от {rub(calc_round(calc_base(t, calc_area(t, sz)) * CALC_RANGE[0]))}</li>" for sz in t["sizes"])
+        rows.append(f'<tr><th scope="row"><a href="{BY_KEY[t["key"]]["url"]}">{e(t["name"])}</a></th><td><ul class="calc-t__sizes">{cells}</ul></td></tr>')
+    table = ('<div class="table-wrap"><table class="calc-t"><caption>Примерные цены «от» по размерам, базовая комплектация</caption>'
+             '<thead><tr><th scope="col">Постройка</th><th scope="col">Размер и цена</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>")
+    text = f"""<h2>Как работает калькулятор</h2>
+<p>Калькулятор стоимости показывает примерную цену деревянной постройки за минуту: выберите, что строим, размер и комплектацию — цена пересчитается сразу.
+Расчёт сделан по <b>средним ценам рынка Екатеринбурга</b> на сайтах строительных компаний и сверен с ценами наших объектов в <a href="{WORKS_PATH}">«Наших работах»</a>.</p>
+<p>Цена в калькуляторе — вилка «от и до», а не точная смета. Точную стоимость назовём после замера: смету расписываем по позициям и закрепляем в договоре, а гарантия на работы — {e(COMPANY["warranty"])}.</p>
+<h2>Что влияет на стоимость</h2>
+<ul>
+<li><b>Размер и форма</b> — чем больше площадь, тем ниже цена квадратного метра, но выше итог.</li>
+<li><b>Тип постройки</b> — закрытая беседка с остеклением дороже открытой примерно в полтора раза, тёплая — почти вдвое.</li>
+<li>Материал — клеёный брус и бревно дороже строганого бруса, лиственница дороже хвойной доски.</li>
+<li>Кровля и фундамент — мягкая черепица дороже профлиста, на сложном грунте нужны дополнительные сваи.</li>
+<li>Печь и мангал — печной комплекс добавляет к цене беседки или летней кухни заметную сумму.</li>
+<li>Участок — уклон, подъезд для машины и расстояние от Екатеринбурга.</li>
+</ul>
+<p>Размеры удобно подобрать по нашим статьям: <a href="/stati/chertezh-besedki/">чертёж беседки с размерами</a>, <a href="/stati/kakoy-saray/">какой сарай построить на даче</a> и <a href="/stati/karkasnyy-dom-razmery/">размеры каркасного дома</a>.
+Все типы построек и наши объекты с фото — в разделах <a href="{BY_KEY["besedka"]["url"]}">беседки</a>, <a href="{BY_KEY["banya"]["url"]}">бани</a>, <a href="{BY_KEY["naves"]["url"]}">навесы</a> и <a href="/#razdely">в каталоге</a>.</p>
+<h2>Цены по размерам</h2>
+<p>Ниже — нижняя граница вилки для популярных размеров в базовой комплектации. Цена примерная и зависит от участка и отделки.</p>
+{table}"""
+    schema = [crumbs_ld([("Главная", "/"), ("Калькулятор стоимости", path)]), faq_ld(CALC_FAQ),
+              {"@context": "https://schema.org", "@type": "WebApplication", "name": "Калькулятор стоимости деревянных построек",
+               "url": SITE["base_url"] + path, "applicationCategory": "UtilitiesApplication", "operatingSystem": "Any",
+               "inLanguage": "ru", "isAccessibleForFree": True, "provider": {"@id": ORG_ID}}]
+    body = f"""{head(fit_title(title), desc, path, True, schema)}{header()}
+<main id="main"><div class="page">{crumbs([("Главная", "/"), ("Калькулятор стоимости", path)])}
+<div class="intro"><h1>{e(h1)}</h1>
+<p class="intro__lead">Калькулятор стоимости беседки, бани, террасы, навеса, хозблока и каркасного дома: выберите постройку, размер и комплектацию — покажем примерную цену. Точный расчёт пришлём после заявки.</p></div>
+<section class="calc" aria-label="Калькулятор" data-calc="page"><noscript><p>Калькулятору нужен JavaScript. <a href="#zayavka">Оставьте заявку</a> — рассчитаем стоимость вручную.</p></noscript></section>
+<section class="article">{text}</section>
+{faq_block(CALC_FAQ)}
+<p class="cta-line">Хотите точную смету? <a href="#zayavka">Оставьте заявку</a> — перезвоним и рассчитаем по вашему участку.</p>
+</div>
+{lead_form()}
+</main>
+{footer()}"""
+    write(path, body)
+
+
 def contacts_page():
     """Контакты: создаётся, только когда в site.py есть телефон или реквизиты ИП."""
     ip = SITE.get("ip") or {}
@@ -1211,6 +1391,9 @@ def main():
         indexable.append(CONTACTS_PATH)
     norms_page()
     indexable.append(NORMS_PATH)
+    calc_data_js()
+    calc_page()
+    indexable.append(CALC_PATH)
     if ARTICLES:
         articles_hub()
         indexable.append("/stati/")
@@ -1227,7 +1410,7 @@ def main():
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + 1 + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 

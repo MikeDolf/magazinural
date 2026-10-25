@@ -21,7 +21,7 @@ SITE = {
     # Приём заявок — Web3Forms (web3forms.com, письма на почту владельца), docs/zayavki-web3forms.md.
     # Ключ доступа Web3Forms публичный по замыслу сервиса: он и так виден в коде страницы.
     # Пока None, форма проверяет поля и честно пишет, что приём не подключён.
-    "form_key": None,       # "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    "form_key": "4c17cc27-0b22-40b7-bea5-47ff348ef6c8",
     # Запасной вариант — свой Cloudflare Worker → Telegram (docs/zayavki-telegram.md):
     "form_endpoint": None,  # "https://zayavki.<ваш-аккаунт>.workers.dev"
     "metrika": 113770140,  # Яндекс.Метрика: счётчик и цели (zayavka, callback_open, tel_click, max_click)
