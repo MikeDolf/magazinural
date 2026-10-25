@@ -45,7 +45,7 @@ def main():
         if not c.exists():
             shutil.copy2(f, c)
         src = Image.open(c)
-        for side in (None, 1400, 1200, 1000):  # не влезло в 200 КБ — уменьшаем
+        for side in (None, 1400, 1200, 1000, 860, 760):  # не влезло в 200 КБ — уменьшаем
             img = src
             if side and max(src.size) > side:
                 img = src.copy()

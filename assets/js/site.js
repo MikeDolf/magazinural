@@ -156,3 +156,9 @@ document.querySelectorAll("[data-steps]").forEach((box) => {
   });
   show(0);
 });
+
+// «Показать все» в каталоге раздела: карточки уже в HTML, просто открываем скрытые.
+document.querySelectorAll("[data-more-btn]").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".grid[data-more] .is-more").forEach((c) => c.classList.remove("is-more"));
+  b.closest(".more").remove();
+}));

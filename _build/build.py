@@ -35,7 +35,7 @@ from data.sizes import SIZES, PRICES as SIZE_PRICES
 from data import objects_text as OT
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "31"  # меняйте при правке css/js
+VER = "34"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -251,7 +251,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
     return f"""<!doctype html>
 <html lang="ru"{f' data-ym="{SITE["metrika"]}"' if SITE.get("metrika") else ""}>
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><script>document.documentElement.classList.add("js")</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">{f'<meta name="form-endpoint" content="https://api.web3forms.com/submit"><meta name="form-key" content="{e(SITE["form_key"])}">' if SITE.get("form_key") else (f'<meta name="form-endpoint" content="{e(SITE["form_endpoint"])}">' if SITE.get("form_endpoint") else "")}
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
@@ -576,7 +576,10 @@ def section_page(section, sub=None, city=None):
             for t, u, n in tabs) + "</ul></nav>"
     if items:
         items = sorted(items, key=is_project)
-        grid = '<div class="grid">' + "".join(passport(i) for i in items) + "</div>"
+        SHOW = 9  # остальные карточки в HTML (для поиска), на экране — по кнопке
+        grid = ('<div class="grid" data-more>' + "".join(passport(i).replace('<article class="passport', '<article class="passport is-more', 1) if n >= SHOW else passport(i)
+                                                       for n, i in enumerate(items)) + "</div>"
+                + (f'<p class="more"><button class="btn btn--ghost" type="button" data-more-btn>Показать все — {len(items)}</button></p>' if len(items) > SHOW else ""))
         n_obj = sum(1 for i in items if not is_project(i))
         count = (f'<h2 class="board__h">{"Наши объекты и проекты" if n_obj and n_obj < len(items) else ("Проекты" if not n_obj else "Наши объекты")}</h2>'
                  f'<p class="board__count">На стенде: {len(items)}</p>')
@@ -623,14 +626,19 @@ def section_page(section, sub=None, city=None):
         schema.append({"@context": "https://schema.org", "@type": "WebPage", "url": SITE["base_url"] + path,
                        "name": h1, "dateModified": upd, "inLanguage": "ru", "publisher": {"@id": ORG_ID}})
     updated_html = f'<p class="updated">Текст обновлён <time datetime="{upd}">{ru_date(upd)}</time></p>' if upd and text else ""
+    pic_items = [i for i in sorted(items, key=is_project) if i.get("photos")][:3]
+    pics = ('<div class="intro__pics" aria-hidden="true">' + "".join(
+        f'<img src="/{e(i["photos"][0])}" alt="" width="{img_size(i["photos"][0])[0]}" height="{img_size(i["photos"][0])[1]}"{" fetchpriority=high" if n == 0 else ""} decoding="async">'
+        for n, i in enumerate(pic_items)) + "</div>") if len(pic_items) == 3 else ""
     body = f"""{head(title, desc, path, index, schema)}{header()}
 <main id="main">
   <div class="page">
     {crumbs(trail)}
-    <div class="intro">
-      <h1>{e(h1)}</h1>
+    <div class="intro{" intro--pics" if pics else ""}">
+      <div class="intro__text"><h1>{e(h1)}</h1>
       <p class="intro__lead">{e(lead)}</p>
-      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p>
+      <p class="intro__cta"><a class="btn btn--frame" href="#zayavka">Оставить заявку</a> <button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>
+      {pics}
     </div>
     {advantages_block()}
     {tabs_html}
