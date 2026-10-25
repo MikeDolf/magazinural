@@ -843,3 +843,41 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .rv { opacity: 1; transform: none; }
 }
+
+/* ===== крупный системный шрифт на телефоне (масштаб текста 115–150 %): ничего не распирает страницу ===== */
+.top__in { min-width: 0; }
+.logo { min-width: 0; flex: 0 1 auto; }
+.logo__text { min-width: 0; }
+.logo__text b { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 620px) {
+  .top__in { gap: 8px; }
+  .logo { gap: 8px; }
+  .logo__mark { width: 28px; height: 28px; }
+  .logo__text b { font-size: .95rem; line-height: 1.1; }
+  .top__cta { padding: 0 .75em; min-width: 0; font-size: .92rem; }
+  .menu-btn, .top__max { min-width: 44px; min-height: 44px; }
+  .menu-btn { width: 44px; height: 44px; }
+  .top__max .mx { width: 32px; height: 32px; }
+}
+@media (max-width: 360px) { .logo__text { display: none; } }
+.foot__in, .foot__in > *, .foot__cols, .foot__cols > * { min-width: 0; }
+.foot, .drawer, .article, .faq, .related { overflow-wrap: anywhere; }
+.intro .btn { max-width: 100%; white-space: normal; text-align: center; }
+@media (max-width: 560px) {
+  .calc-t, .calc-t tbody, .calc-t tr, .calc-t th, .calc-t td, .calc-t caption { display: block; width: 100%; }
+  .calc-t thead { display: none; }
+  .calc-t tbody th { padding-bottom: 2px; border-bottom: 0; }
+  .calc-t__sizes li { white-space: normal; }
+}
+/* панель меню: шапка и нижние кнопки сжимаются вместе с текстом */
+.drawer__head .logo { flex: 1 1 auto; }
+@media (max-width: 480px) { .drawer__head .logo__text small { display: none; } }
+.drawer__foot { gap: 8px; }
+.drawer__cta { min-width: 0; white-space: normal; line-height: 1.15; padding: 8px 12px; text-align: center; }
+.drawer__ic { width: 48px; height: 48px; border-radius: 12px; }
+.drawer__ic .mx { width: 30px; height: 30px; }
+.drawer__tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.drawer__all ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 340px) { .drawer__all ul { grid-template-columns: 1fr; } }
+/* длинные надписи на кнопках переносятся, а не растягивают страницу */
+.btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.2; }
