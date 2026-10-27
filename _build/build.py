@@ -1216,7 +1216,10 @@ def object_page(item):
                           # изготовление по индивидуальному заказу — возврата нет (ЗоЗПП ст. 26.1), недостатки — по гарантии
                           "hasMerchantReturnPolicy": {"@type": "MerchantReturnPolicy", "applicableCountry": "RU",
                                                       "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"}}
+        # цены «от» — средние по рынку, утверждены владельцем 24.10.2026 (CLAUDE.md); действуют до конца 2027 г.
+        prod["offers"]["validFrom"] = "2026-10-24"
         prod["offers"]["priceValidUntil"] = "2027-12-31"
+        prod["mpn"] = f"MU-{item['id']}"  # свой код модели: мы и производитель, GTIN у построек нет
     else:
         # Без цены Product без offers — ошибка в Google; такой объект размечаем как услугу с фото.
         prod = {"@context": "https://schema.org", "@type": "Service", "name": full, "serviceType": section["name"],
