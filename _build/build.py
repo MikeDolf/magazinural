@@ -38,7 +38,7 @@ from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 from data.article_tables import ARTICLE_TABLES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "45"  # меняйте при правке css/js
+VER = "46"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -345,6 +345,16 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 """
 
 
+def top_phone():
+    """Телефон в шапке: номер (на телефоне — круглая кнопка «позвонить») и «Перезвоните мне» под ним."""
+    if not SITE.get("phone"):
+        return '<button class="top__call" type="button" data-callback aria-haspopup="dialog" aria-label="Перезвоните мне">' + icon("phone") + '</button>'
+    tel = re.sub(r"[^+0-9]", "", SITE["phone"])
+    return (f'<div class="top__tel"><a class="top__phone" href="tel:{tel}" aria-label="Позвонить: {e(SITE["phone"])}">{icon("phone")}'
+            f'<span class="top__phone-n">{e(SITE["phone"])}</span></a>'
+            f'<button class="top__cb" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></div>')
+
+
 def header(cta="#zayavka"):
     """cta — куда ведёт кнопка заявки: на форму этой страницы или, если формы нет, на форму главной."""
     links = "".join(f'<li><a href="{BY_KEY[k]["url"]}">{e(BY_KEY[k]["name"])}</a></li>' for k in HEADER_SECTIONS if k in BY_KEY)
@@ -357,7 +367,7 @@ def header(cta="#zayavka"):
       <nav aria-label="Разделы каталога"><ul>{links}<li><a href="/#razdely">Все постройки</a></li><li class="nav__extra"><a href="{CALC_PATH}">Калькулятор</a></li><li class="nav__extra"><a href="/o-kompanii/">О компании</a></li></ul></nav>
     </details>
     {f'<button class="top__max" type="button" data-max aria-haspopup="dialog" aria-label="Написать в MAX">{MAX_ICON}<span>Написать в MAX</span></button>' if SITE.get("max") else ""}
-    <button class="top__call" type="button" data-callback aria-haspopup="dialog" aria-label="Перезвоните мне">{icon('phone')}<span>Перезвоните мне</span></button>
+    {top_phone()}
     <a class="btn btn--enamel top__cta" href="{cta}"><span class="top__cta-long">Оставить заявку</span><span class="top__cta-short">Заявка</span></a>
   </div>
 </header>
