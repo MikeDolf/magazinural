@@ -38,7 +38,7 @@ from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 from data.article_tables import ARTICLE_TABLES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "49"  # меняйте при правке css/js
+VER = "50"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -379,6 +379,7 @@ def head(title, desc, path, index, schema=(), og_type="website", og_img=None):
 <link rel="icon" href="/favicon-120.png" sizes="120x120" type="image/png">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://mc.yandex.ru">
 <link rel="preload" href="/assets/fonts/golos-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.min.css?v={VER}">
 <meta name="theme-color" content="#2f1d11">
@@ -813,6 +814,44 @@ def sizes_block(section):
             + f'</p><ul class="sizes__list">{cards}</ul></section>')
 
 
+def diff_label(o, a):
+    """Разница опции с базовой ценой: «+20 %», «−25 %», «+45 000 ₽»."""
+    if o.get("k"):
+        pct = round((o["k"] - 1) * 100)
+        return f"+{pct} %" if pct > 0 else f"−{-pct} %"
+    if o.get("add") or o.get("m2"):
+        return "+" + rub(calc_round(o.get("add") or o["m2"] * a))
+    return "базовая цена"
+
+
+def compare_block(t):
+    """Сравнение вариантов по первой группе опций калькулятора (тип, технология, кровля…) для ходового размера."""
+    g_name, items = t["options"][0]
+    if len(items) < 2:
+        return ""
+    sz = t["sizes"][1] if len(t["sizes"]) > 1 else t["sizes"][0]
+    a = calc_area(t, sz)
+    base = calc_base(t, a)
+    rows = []
+    for n, o in items:
+        v = base * o.get("k", 1) + o.get("add", 0) + o.get("m2", 0) * a
+        rows.append(f'<tr><th scope="row">{e(n)}</th><td data-th="Цена {e(size_label(t, sz))}">от {rub(calc_round(v))}</td>'
+                    f'<td data-th="Разница">{diff_label(o, a)}</td></tr>')
+    return (f'<div class="ptable"><div class="table-wrap"><table><caption>{e(t["name"])} {e(size_label(t, sz))}: {e(g_name.lower())} и цена</caption>'
+            f'<thead><tr><th scope="col">{e(g_name)}</th><th scope="col">Цена {e(size_label(t, sz))}</th><th scope="col">Разница</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div><p class="ptable__note">Цены примерные, средние по рынку Екатеринбурга; точную считаем после замера.</p></div>')
+
+
+def section_calc(section):
+    """Калькулятор этой постройки прямо в разделе + таблица сравнения вариантов."""
+    t = next((x for x in CALC if x["key"] == section["key"]), None)
+    if not t:
+        return ""
+    return (f'<section class="scalc" aria-labelledby="scalc-h"><h2 id="scalc-h">Сколько стоит {e(t["name"].lower())}: калькулятор</h2>'
+            f'<p class="sizes__note">Выберите размер и комплектацию — покажем примерную цену. Все постройки — в <a href="{CALC_PATH}?type={t["key"]}">общем калькуляторе</a>.</p>'
+            f'{compare_block(t)}<div class="calc" data-calc="page" data-type="{t["key"]}"></div></section>')
+
+
 def section_page(section, sub=None, city=None):
     """Раздел, подкатегория или гео-страница раздела (city — город из data/texts_geo_*.py)."""
     path = sub["url"] if sub else section["url"]
@@ -905,6 +944,7 @@ def section_page(section, sub=None, city=None):
     {advantages_block()}
     {tabs_html}
     {sizes_block(section) if not sub and not city else ""}
+    {section_calc(section) if not sub and not city else ""}
     <section class="board" aria-label="Объявления">{count}{grid}</section>
     {steps_block()}
   </div>
@@ -1235,6 +1275,29 @@ def obj_name(x):
     return name
 
 
+def object_faq(item, section, proj):
+    """Вопросы по объекту: цена, размер, срок, доставка — из паспорта и условий компании."""
+    short = item["title"].split("«")[-1].rstrip("»")
+    kind = "по этому проекту" if proj else "такую же постройку"
+    n = LISTINGS.index(item)
+    towns = [AREA[1 + (n + i * 3) % (len(AREA) - 1)] for i in range(3)]
+    price = item.get("price_from")
+    q = [
+        (f"Сколько стоит {kind}?",
+         (f"Ориентир — от {rub(price)} за базовую комплектацию, это средняя цена по рынку Екатеринбурга. " if price else
+          "Цену считаем по вашим размерам и материалам, это зависит от комплектации и участка. ")
+         + "Точную стоимость назовём после замера и закрепим в договоре."),
+        (f"Можно ли построить «{short}» другого размера?",
+         f"Да, меняем длину и ширину под ваш участок{', а материал (' + item['material'] + ') можно заменить' if item.get('material') else ''}"
+         f"{'; крыша — ' + item['roof'] + ', её форму и покрытие тоже можно поменять' if item.get('roof') else ''}. Все изменения показываем в 3D-проекте до договора."),
+        ("Сколько времени займёт строительство?",
+         f"Срок работ на участке — {item.get('duration') or 'по договору'}. Детали готовим на своём производстве заранее, точный срок фиксируем в договоре."),
+        (f"Строите ли {section['name'].lower()} за пределами Екатеринбурга?",
+         f"Да, строим в пригородах и по области, например: {', '.join(towns)}. Доставка и монтаж в Екатеринбурге входят в цену, за город — по смете."),
+    ]
+    return q
+
+
 def pick(items, n, k):
     """k пунктов из списка со сдвигом n: у соседних объектов разные наборы и порядок."""
     if len(items) <= k:
@@ -1362,7 +1425,8 @@ def object_page(item):
 
 Оставьте заявку и напишите, что понравилось в этом {"проекте" if proj else "объекте"}. Перезвоним, уточним размеры и участок, приедем на замер, подготовим 3D-проект и смету. Можно повторить постройку один в один или изменить размер, крышу и отделку.
 """ + (f"\nПохожие постройки собраны в разделах: {sub_links}. " if sub_links else "\n") + f"Все {name_l} — в каталоге «[{section['name']}]({section['url']})»."
-    body = f"""{head(title, desc[:160], path, True, [crumbs_ld(trail), prod], "website", "/" + photos[0])}{header()}
+    ofaq = object_faq(item, section, proj)
+    body = f"""{head(title, desc[:160], path, True, [crumbs_ld(trail), prod, faq_ld(ofaq)], "website", "/" + photos[0])}{header()}
 <main id="main">
   <div class="page">
     {crumbs(trail)}
@@ -1375,6 +1439,7 @@ def object_page(item):
         <p class="passport__note">{f'Цена от <b>{rub(price)}</b> — точную смету считаем после замера' if price else 'Цену рассчитаем по вашим размерам'}</p><a class="btn btn--frame" href="#zayavka" data-object="{e(item["title"])}">{"Рассчитать по проекту" if proj else "Рассчитать такую же"}</a></div></article>
     </div>
     <section class="article obj__text">{md(text)}</section>
+    {faq_block(ofaq)}
     {(f'<section class="related related--cards" aria-labelledby="oth-h"><h2 id="oth-h">{"Похожие проекты" if proj else "Похожие объекты"}</h2><ul class="ocards">' + "".join(obj_card(x) for x in others) + "</ul></section>") if others else ""}
     <p class="cta-line">{f'Все проекты — на странице «<a href="{PROJECTS_PATH}">Проекты построек</a>».' if proj else f'Все наши объекты с фото — на странице «<a href="{WORKS_PATH}">Наши работы</a>».'}</p>
   </div>
@@ -2035,9 +2100,17 @@ def main():
     lastmod.update({u: d for u, d in UPDATED.items()})
     urls = "".join(f"<url><loc>{SITE['base_url']}{p}</loc>" + (f"<lastmod>{lastmod[p]}</lastmod>" if p in lastmod else "") + "</url>" for p in indexable)
     (ROOT / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>\n', encoding="utf-8")
+    # Карта картинок: фото объектов и проектов для поиска по картинкам Яндекса и Google.
+    img_urls = []
+    for item in LISTINGS:
+        if item.get("photos"):
+            imgs = "".join(f"<image:image><image:loc>{SITE['base_url']}/{e(ph)}</image:loc></image:image>" for ph in item["photos"][:10])
+            img_urls.append(f"<url><loc>{SITE['base_url']}{object_url(item)}</loc>{imgs}</url>")
+    (ROOT / "sitemap-images.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+                                             'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' + "".join(img_urls) + "</urlset>\n", encoding="utf-8")
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
-    (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\n\nUser-agent: Yandex\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nClean-param: type /kalkulyator/\n\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
+    (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\n\nUser-agent: Yandex\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nClean-param: type /kalkulyator/\n\nSitemap: {SITE['base_url']}/sitemap.xml\nSitemap: {SITE['base_url']}/sitemap-images.xml\n", encoding="utf-8")
     total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + 6 + 2 * bool(SITE.get("author")) + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 

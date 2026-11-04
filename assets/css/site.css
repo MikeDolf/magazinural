@@ -1005,3 +1005,12 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
 .nf { margin: 24px 0 40px; }
 .nf__tiles { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
 .nf__tiles { grid-template-columns: repeat(auto-fill, minmax(min(46%, 200px), 1fr)); }
+/* калькулятор и сравнение в разделе */
+.scalc { margin: 32px 0; }
+.scalc .ptable { max-width: 44rem; }
+.scalc .calc { margin-top: 18px; }
+/* калькулятор: колонка не шире экрана, длинные опции и суммы переносятся */
+.calc__grid { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 960px) { .calc__grid { grid-template-columns: minmax(0, 1fr) 340px; } }
+.chip span { white-space: normal; line-height: 1.25; padding-top: 6px; padding-bottom: 6px; }
+@media (max-width: 959px) { .calc__result:not(.calc__result--quiz) .calc__sum { white-space: normal; } }

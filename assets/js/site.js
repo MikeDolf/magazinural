@@ -291,8 +291,10 @@ const readCustom = (id, st, box) => {
 document.querySelectorAll('[data-calc="page"]').forEach((box) => {
   if (!C) return;
   const id = `c${uid++}`;
-  const st = newState(new URLSearchParams(location.search).get("type"));
-  box.innerHTML = `<div class="calc__grid"><div class="calc__form">${typesHTML(id, st)}<div class="calc__dyn"></div></div>` +
+  // В разделе (data-type) постройка задана — плитки выбора типа не показываем.
+  const fixed = box.dataset.type;
+  const st = newState(fixed || new URLSearchParams(location.search).get("type"));
+  box.innerHTML = `<div class="calc__grid"><div class="calc__form">${fixed ? "" : typesHTML(id, st)}<div class="calc__dyn"></div></div>` +
     `<aside class="calc__result" aria-live="polite"><div class="calc__res"></div>` +
     `<a class="btn btn--enamel" href="#zayavka" data-calc-apply>Получить точный расчёт</a></aside></div><p class="calc__note calc__note--page">${esc(C.note)}</p>`;
   const dyn = box.querySelector(".calc__dyn"), res = box.querySelector(".calc__res");

@@ -10,3 +10,4 @@ Disallow: /workers/
 Clean-param: type /kalkulyator/
 
 Sitemap: https://magazinural.ru/sitemap.xml
+Sitemap: https://magazinural.ru/sitemap-images.xml
