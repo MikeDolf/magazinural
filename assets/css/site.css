@@ -982,3 +982,21 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
 /* узкий телефон: вместо значка-домика оставляем название — бренд важнее */
 @media (max-width: 400px) { .logo__text { display: grid; } .logo__mark { display: none; } .logo__text b { font-size: .9rem; } }
 @media (max-width: 340px) { .logo__text { display: none; } .logo__mark { display: block; } }
+/* нормы и источники в статье, факты об авторе */
+.sources { max-width: 44rem; margin: 32px 0 0; padding: 18px 22px; border: 1px solid var(--rule); border-radius: 14px; background: var(--board); }
+.sources h2 { font-size: 1.15rem; margin: 0 0 8px; }
+.sources p { margin: 10px 0 6px; color: var(--ink-2); font-size: .95rem; }
+.sources ul { margin: 0; padding-left: 1.2em; font-size: .92rem; color: var(--ink-2); line-height: 1.5; }
+.sources__note { font-size: .88rem !important; color: var(--ink-3) !important; }
+.author__more { margin-top: 8px !important; font-size: .9rem; }
+.author__more a { color: var(--accent); }
+.facts--person { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 18px 0 6px; }
+@media (max-width: 560px) { .facts--person { grid-template-columns: 1fr 1fr; } }
+.article .facts { padding: 0; }
+.article .facts li { margin: 0; }
+.facts span { overflow-wrap: normal; word-break: normal; hyphens: auto; }
+.facts--person { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+@media (max-width: 560px) { .facts--person { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
+.facts--person { grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); }
+.facts--person li { min-width: 0; }
+.facts--person span { overflow-wrap: anywhere; }

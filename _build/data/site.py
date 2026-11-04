@@ -30,6 +30,7 @@ SITE = {
     # IndexNow (Яндекс, Bing): ключ — файл /<ключ>.txt в корне сайта; отправка — python3 _build/indexnow.py.
     "indexnow_key": "6393560881a44b8141532fd13bfd23c8",
     "author": {"name": "Павел Дмитриевич Никулов", "short": "П. Д. Никулов", "job": "Главный инженер-конструктор",
+               "experience": "13 лет", "projects": "более 100 объектов",  # со слов владельца, 04.11.2026
                "url": "/o-kompanii/nikulov/", "photo": "assets/img/avtor-nikulov.webp"},
 }
 
