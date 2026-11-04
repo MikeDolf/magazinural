@@ -18,6 +18,7 @@ import html
 import json
 import re
 import sys
+import urllib.parse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -37,7 +38,7 @@ from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 from data.article_tables import ARTICLE_TABLES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "44"  # меняйте при правке css/js
+VER = "45"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -1417,22 +1418,36 @@ def calc_page():
 
 
 def contacts_page():
-    """Контакты: создаётся, только когда в site.py есть телефон или реквизиты ИП."""
+    """Контакты: телефон, MAX, часы, адрес с картой Яндекса, реквизиты — коммерческие факторы для Яндекса."""
     ip = SITE.get("ip") or {}
-    parts = []
+    addr = ip.get("address") or ""
+    parts = ['<div class="cbox">']
     if SITE.get("phone"):
-        parts.append(f'<p>Телефон: <a href="tel:{re.sub(r"[^+0-9]", "", SITE["phone"])}">{e(SITE["phone"])}</a></p>')
+        parts.append(f'<p class="cbox__row"><span>Телефон</span><a class="cbox__big" href="tel:{re.sub(r"[^+0-9]", "", SITE["phone"])}">{e(SITE["phone"])}</a></p>')
+    if SITE.get("max"):
+        parts.append(f'<p class="cbox__row"><span>Мессенджер</span><button class="btn btn--max" type="button" data-max>{MAX_ICON}Написать в MAX</button></p>')
     if SITE.get("hours"):
-        parts.append(f"<p>Часы работы: {e(SITE['hours'])}</p>")
+        parts.append(f'<p class="cbox__row"><span>Часы работы</span><b>{e(SITE["hours"])}</b></p>')
     if SITE.get("email"):
-        parts.append(f'<p>Почта: <a href="mailto:{e(SITE["email"])}">{e(SITE["email"])}</a></p>')
+        parts.append(f'<p class="cbox__row"><span>Почта</span><a href="mailto:{e(SITE["email"])}">{e(SITE["email"])}</a></p>')
+    if addr:
+        parts.append(f'<p class="cbox__row"><span>Адрес</span><b>{e(addr)}</b></p>')
+    parts.append('<p class="cbox__row"><span>Перезвоним</span><button class="btn btn--ghost" type="button" data-callback aria-haspopup="dialog">Перезвоните мне</button></p></div>')
+    if addr:
+        q = urllib.parse.quote(addr.replace("г. ", ""))
+        parts.append(f'<h2>Как нас найти</h2><p>Офис — {e(addr)}. Замер и консультацию проводим на вашем участке — '
+                     f'приезжаем в Екатеринбурге и пригородах.</p><div class="cmap"><iframe src="https://yandex.ru/map-widget/v1/?text={q}&amp;z=16" '
+                     f'title="Офис «{e(SITE["name"])}» на карте" loading="lazy" allowfullscreen></iframe></div>'
+                     f'<p><a href="https://yandex.ru/maps/?text={q}" target="_blank" rel="noopener">Открыть в Яндекс Картах</a> · '
+                     f'<a href="https://www.google.com/maps/search/?api=1&amp;query={q}" target="_blank" rel="noopener">Открыть в Google Картах</a></p>')
     if ip:
-        parts.append("<h2>Реквизиты</h2>" + "".join(f"<p>{x}</p>" for x in [
+        parts.append("<h2>Реквизиты</h2><ul>" + "".join(f"<li>{x}</li>" for x in [
             f"ИП {e(ip['name'])}" if ip.get("name") else "", f"ИНН {e(ip['inn'])}" if ip.get("inn") else "",
-            f"ОГРНИП {e(ip['ogrnip'])}" if ip.get("ogrnip") else "", e(ip["address"]) if ip.get("address") else ""] if x))
-    parts.append(f"<h2>Где работаем</h2><p>{e(', '.join(AREA))}.</p>")
-    simple_page(CONTACTS_PATH, "Контакты «Магазин Урал»: телефон и реквизиты", "Контакты", "".join(parts), index=True,
-                desc="Контакты компании «Магазин Урал»: телефон, часы работы и реквизиты ИП. Строим деревянные постройки в Екатеринбурге и пригородах — оставьте заявку на замер.")
+            f"ОГРНИП {e(ip['ogrnip'])}" if ip.get("ogrnip") else "", e(addr)] if x) + "</ul>")
+    parts.append(f"<h2>Где работаем</h2><p>{e(', '.join(AREA))}. Доставка и монтаж в Екатеринбурге входят в цену, условия — на странице "
+                 f'«<a href="/dostavka-i-oplata/">Доставка и оплата</a>», гарантия — «<a href="/garantiya/">Гарантия 3 года</a>».</p>')
+    simple_page(CONTACTS_PATH, "Контакты «Магазин Урал»: телефон, адрес, MAX, часы работы", "Контакты", "".join(parts), index=True,
+                desc="Контакты «Магазин Урал» в Екатеринбурге: телефон, MAX, адрес офиса на карте, часы работы и реквизиты ИП. Строим бани, беседки и навесы — оставьте заявку.")
 
 
 POLICY = """

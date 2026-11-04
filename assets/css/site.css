@@ -950,3 +950,12 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
 .related .ocard a:hover { color: inherit; }
 /* LCP: заголовок и вводный текст первого экрана видны сразу (прозрачный элемент Google не считает отрисованным) */
 .page > .intro h1, .page > .intro .intro__lead { animation: none; }
+
+/* страница контактов */
+.cbox { display: grid; gap: 0; max-width: 44rem; background: var(--board); border-radius: 14px; box-shadow: var(--shadow); padding: 6px 20px; margin: 8px 0 24px; }
+.cbox__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.cbox__row:last-child { border-bottom: 0; }
+.cbox__row > span { color: var(--ink-3); font-size: .92rem; }
+.cbox__big { font-size: 1.25rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+.cmap { max-width: 44rem; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 16 / 10; background: var(--frame-soft); }
+.cmap iframe { width: 100%; height: 100%; border: 0; display: block; }

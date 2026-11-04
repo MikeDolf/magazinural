@@ -27,6 +27,8 @@ SITE = {
     "metrika": 113770140,  # Яндекс.Метрика: счётчик и цели (zayavka, callback_open, tel_click, max_click)
     # Автор и научный редактор статей — со слов владельца (25.10.2026). Стаж, образование, награды — только когда владелец назовёт.
     # photo — путь к фото в assets/ (квадрат); пока None, вместо фото — инициалы.
+    # IndexNow (Яндекс, Bing): ключ — файл /<ключ>.txt в корне сайта; отправка — python3 _build/indexnow.py.
+    "indexnow_key": "6393560881a44b8141532fd13bfd23c8",
     "author": {"name": "Павел Дмитриевич Никулов", "short": "П. Д. Никулов", "job": "Главный инженер-конструктор",
                "url": "/o-kompanii/nikulov/", "photo": "assets/img/avtor-nikulov.webp"},
 }
