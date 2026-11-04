@@ -38,7 +38,7 @@ from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 from data.article_tables import ARTICLE_TABLES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "47"  # меняйте при правке css/js
+VER = "49"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
@@ -427,7 +427,7 @@ def footer():
         cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in chunk) + "</ul>")
     cols.append("<ul>" + "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in ext)
                 + (f'<li><a href="{CONTACTS_PATH}">Контакты</a></li>' if has_contacts() else "")
-                + f'<li><a href="{CALC_PATH}">Калькулятор стоимости</a></li><li><a href="{DELIVERY_PATH}">Доставка и оплата</a></li><li><a href="{WARRANTY_PATH}">Гарантия</a></li><li><a href="{FAQ_PATH}">Вопросы и ответы</a></li><li><a href="/nashi-raboty/">Наши работы</a></li><li><a href="/proekty/">Проекты</a></li><li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="{EDITORIAL_PATH}">Как мы проверяем статьи</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li><li><a href="{MAP_PATH}">Карта сайта</a></li></ul>')
+                + f'<li><a href="{CALC_PATH}">Калькулятор стоимости</a></li><li><a href="{PRICES_PATH}">Цены</a></li><li><a href="{DELIVERY_PATH}">Доставка и оплата</a></li><li><a href="{WARRANTY_PATH}">Гарантия</a></li><li><a href="{FAQ_PATH}">Вопросы и ответы</a></li><li><a href="/nashi-raboty/">Наши работы</a></li><li><a href="/proekty/">Проекты</a></li><li><a href="/stati/">Статьи</a></li><li><a href="/gde-postavit-postroyku/">Где поставить постройку</a></li><li><a href="/o-kompanii/">О компании</a></li><li><a href="{EDITORIAL_PATH}">Как мы проверяем статьи</a></li><li><a href="/politika-konfidencialnosti/">Политика конфиденциальности</a></li><li><a href="{MAP_PATH}">Карта сайта</a></li></ul>')
     return f"""<footer class="foot">
   <div class="foot__in">
     <div class="foot__brand"><a class="logo logo--foot" href="/">{LOGO}<span class="logo__text"><b>{e(SITE['name'])}</b><small>{e(SITE['region'])}</small></span></a>
@@ -516,7 +516,7 @@ def drawer():
     rest = "".join(f'<li><a href="{s["url"]}">{e(s["name"])}</a></li>' for s in SECTIONS if s["key"] not in main)
     def links(items):
         return '<ul class="drawer__links">' + "".join(f'<li><a href="{u}">{e(t)}{icon("arrow")}</a></li>' for u, t in items) + "</ul>"
-    useful = [(CALC_PATH, "Калькулятор стоимости"), ("/nashi-raboty/", "Наши работы"), ("/proekty/", "Проекты"), ("/stati/", "Статьи"),
+    useful = [(CALC_PATH, "Калькулятор стоимости"), (PRICES_PATH, "Цены"), ("/nashi-raboty/", "Наши работы"), ("/proekty/", "Проекты"), ("/stati/", "Статьи"),
               ("/gde-postavit-postroyku/", "Где поставить постройку")]
     company = [("/o-kompanii/", "О компании"), ("/dostavka-i-oplata/", "Доставка и оплата"), ("/garantiya/", "Гарантия"),
                ("/voprosy-i-otvety/", "Вопросы и ответы")] + ([(CONTACTS_PATH, "Контакты")] if has_contacts() else [])
@@ -809,7 +809,7 @@ def sizes_block(section):
         + (f'<p class="size__price">от <b>{rub(prices[dim])}</b></p>' if dim in prices else "")
         + f'<a class="btn btn--ghost" href="#zayavka" data-size="{e(dim)}">Рассчитать {e(dim.split(" м")[0])}</a></li>' for dim, t, fit in sizes)
     return (f'<section class="sizes" aria-labelledby="sizes-h"><h2 id="sizes-h">Популярные размеры</h2>'
-            f'<p class="sizes__note">{note}' + (f' Другой размер или комплектация — <a href="{CALC_PATH}?type={section["key"]}">посчитайте в калькуляторе</a>.' if section["key"] in CALC_KEYS else "")
+            f'<p class="sizes__note">{note}' + (f' Другой размер или комплектация — <a href="{CALC_PATH}?type={section["key"]}">посчитайте в калькуляторе</a>, все цены — на странице «<a href="{PRICES_PATH}">Цены</a>».' if section["key"] in CALC_KEYS else "")
             + f'</p><ul class="sizes__list">{cards}</ul></section>')
 
 
@@ -859,7 +859,9 @@ def section_page(section, sub=None, city=None):
         f'<li><a href="{s["url"]}">{e(s["name"])}{icon("arrow")}</a></li>' for s in others) + "</ul></section>"
     article = f'<section class="article" aria-label="Как выбрать">{md(text)}</section>' if text else ""
     faq = FAQ.get(path, [])
-    arts = [a for a in ARTICLES if a["section"] == section["key"]][:6]
+    # статьи о ценах и выборе — первыми: у них коммерческий спрос
+    arts = sorted((a for a in ARTICLES if a["section"] == section["key"]),
+                  key=lambda a: not a["slug"].startswith(("skolko-stoit", "besedka-ili")))[:6]
     read = ('<section class="related" aria-labelledby="art-h"><h2 id="art-h">Статьи по теме</h2><ul>' + "".join(
         f'<li><a href="{a["url"]}">{e(a["h1"])}{icon("arrow")}</a></li>' for a in arts) + "</ul></section>") if arts else ""
     trail = [("Главная", "/"), (section["name"], section["url"])] + ([(name, path)] if sub else [])
@@ -964,6 +966,7 @@ def home_page():
       <h2 id="use-h">Перед стройкой</h2>
       <ul>
         <li><a href="/gde-postavit-postroyku/">Где поставить баню, хозблок и туалет: расстояния{icon("arrow")}</a></li>
+        <li><a href="{PRICES_PATH}">Цены на постройки по размерам{icon("arrow")}</a></li>
         <li><a href="/stati/">Статьи: как выбрать и построить{icon("arrow")}</a></li>
         <li><a href="/o-kompanii/">Как мы работаем{icon("arrow")}</a></li>
       </ul>
@@ -1064,6 +1067,21 @@ def plural(n, one, few, many):
     if 11 <= n <= 19:
         return many
     return one if n % 10 == 1 else few if 2 <= n % 10 <= 4 else many
+
+
+def article_objects(a, pics):
+    """«Наши объекты по теме»: 3 карточки с ценой «от» из раздела статьи (не те, что уже стоят фото в тексте)."""
+    used = {it["id"] for it, _ in pics}
+    pool = sorted((x for x in LISTINGS if x["section"] == a["section"] and x.get("photos") and x["id"] not in used), key=is_project)
+    if not pool:
+        return ""
+    same = [x for x in ARTICLES if x["section"] == a["section"]]
+    k = same.index(a) % len(pool)
+    items = (pool[k:] + pool[:k])[:3]
+    sec = BY_KEY[a["section"]]
+    return ('<section class="related related--cards post__objs" aria-labelledby="objs-h"><h2 id="objs-h">Наши объекты по теме</h2><ul class="ocards">'
+            + "".join(obj_card(x) for x in items)
+            + f'</ul><p class="cta-line">Все {e(sec["name"].lower())} с ценами — в разделе «<a href="{sec["url"]}">{e(sec["name"])}</a>».</p></section>')
 
 
 def article_photos(a):
@@ -1173,6 +1191,7 @@ def article_page(a):
       <p>В разделе «<a href="{section["url"]}">{e(section["name"])}</a>» — что мы строим и как. Оставьте заявку: перезвоним, приедем на замер и рассчитаем смету.</p>
       <p><a class="btn btn--frame" href="#zayavka">Оставить заявку</a></p>
     </aside>
+    {article_objects(a, pics)}
     <div class="article article--post">{faq_block(a.get("faq"))}</div>
     {sources_block(a)}
     {author_card()}
@@ -1228,7 +1247,8 @@ def obj_card(x):
     ph = x["photos"][0]
     w, h = img_size(ph)
     return (f'<li class="ocard"><a href="{object_url(x)}"><img src="/{e(ph)}"{srcset(ph)} alt="{e(obj_name(x))} — фото" width="{w}" height="{h}" loading="lazy" decoding="async">'
-            f'<span class="ocard__t">{e(obj_name(x))}</span><span class="ocard__d">{e(cap(x.get("lead") or ""))}</span></a></li>')
+            f'<span class="ocard__t">{e(obj_name(x))}</span><span class="ocard__d">{e(cap(x.get("lead") or ""))}</span>'
+            + (f'<span class="ocard__p">от {rub(x["price_from"])}</span>' if x.get("price_from") else "") + '</a></li>')
 
 
 def object_page(item):
@@ -1437,6 +1457,48 @@ CALC_FAQ = [
      "Нажмите «Получить точный расчёт» и оставьте телефон. Мы перезвоним, уточним детали и, если нужно, приедем на замер, "
      "а смету по позициям закрепим в договоре."),
 ]
+
+
+PRICES_PATH = "/ceny/"
+
+
+def prices_page():
+    """Цены на все постройки: размеры и цена «от» (как в калькуляторе и разделах) + цены наших объектов по разделам."""
+    path = PRICES_PATH
+    rows = []
+    for t in CALC:
+        sec = BY_KEY[t["key"]]
+        for sz in t["sizes"]:
+            rows.append(f'<tr><th scope="row"><a href="{sec["url"]}">{e(t["name"])}</a></th><td data-th="Размер">{e(size_label(t, sz))}</td>'
+                        f'<td data-th="Цена">от {rub(calc_round(calc_base(t, calc_area(t, sz)) * CALC_RANGE[0]))}</td></tr>')
+    table = ('<div class="ptable"><div class="table-wrap"><table><caption>Цены «от» по размерам, базовая комплектация</caption>'
+             '<thead><tr><th scope="col">Постройка</th><th scope="col">Размер</th><th scope="col">Цена</th></tr></thead><tbody>'
+             + "".join(rows) + '</tbody></table></div><p class="ptable__note">Цены средние по рынку Екатеринбурга, точную считаем после замера.</p></div>')
+    secs = []
+    for sec in SECTIONS:
+        pr = [x["price_from"] for x in LISTINGS if x["section"] == sec["key"] and x.get("price_from")]
+        if pr:
+            n = sum(1 for x in LISTINGS if x["section"] == sec["key"] and x.get("photos"))
+            secs.append(f'<li><a href="{sec["url"]}">{e(sec["name"])}</a> — от {rub(min(pr))}, {n} {plural(n, "объект", "объекта", "объектов")} с фото</li>')
+    text = f"""<p>Здесь собраны <b>цены на деревянные постройки</b> под ключ в Екатеринбурге: беседки, бани, террасы, веранды, навесы, хозблоки, сараи, летние кухни,
+мангальные зоны, каркасные дома и курятники. В цену «от» входит базовая комплектация: фундамент на винтовых сваях, каркас, кровля, пол и обработка дерева.
+Доставка и монтаж по Екатеринбургу — в цене, в пригороды — по смете.</p>
+<h2>Цены по размерам</h2>
+{table}
+<h2>Цены наших объектов по разделам</h2>
+<ul>{"".join(secs)}</ul>
+<h2>Как получить точную цену</h2>
+<ol><li>Посчитайте примерную стоимость в <a href="{CALC_PATH}">калькуляторе</a> — с вашим размером и комплектацией.</li>
+<li>Оставьте заявку: перезвоним, уточним задачу и приедем на замер.</li>
+<li>Пришлём смету по позициям и 3D-проект, итог закрепим в договоре — с <a href="/garantiya/">гарантией 3 года</a>.</li></ol>
+<p>Условия оплаты и доставки — на странице «<a href="/dostavka-i-oplata/">Доставка и оплата</a>».</p>"""
+    faq = [("Почему цены указаны «от»?", "Цена «от» — за базовую комплектацию стандартного размера. Отделка, остекление, печь, материал и участок меняют итог, поэтому точную стоимость называем после замера."),
+           ("Входит ли доставка в цену?", "Доставка и монтаж в Екатеринбурге входят в цену. В пригороды и по области доставку считаем в смете отдельной строкой."),
+           ("Можно ли построить дешевле?", "Можно уменьшить размер, выбрать открытый вариант вместо закрытого или более простую кровлю. На замере предложим варианты под ваш бюджет."),
+           ("Меняются ли цены?", "Цены на сайте действуют до конца 2027 года. Если цены на материалы заметно изменятся, обновим их и дату на этой странице.")]
+    info_page(path, "Цены на беседки, бани и навесы под ключ в Екатеринбурге",
+              "Цены на беседки, бани, террасы, веранды, навесы и хозблоки под ключ в Екатеринбурге: таблица по размерам, цены «от», доставка и монтаж по городу в цене.",
+              "Цены на деревянные постройки", "Цены «от» на все постройки по размерам — средние по рынку Екатеринбурга. Точную смету считаем после замера.", text, faq)
 
 
 def calc_page():
@@ -1854,7 +1916,7 @@ def sitemap_page(indexable):
     for u, (k, c) in GEO.items():
         titles[u] = f'{BY_KEY[k]["name"]} — {c}'
     blocks = []
-    service = [("/", "Главная"), (CALC_PATH, "Калькулятор стоимости"), (WORKS_PATH, "Наши работы"), (PROJECTS_PATH, "Проекты"),
+    service = [("/", "Главная"), (CALC_PATH, "Калькулятор стоимости"), (PRICES_PATH, "Цены"), (WORKS_PATH, "Наши работы"), (PROJECTS_PATH, "Проекты"),
                ("/o-kompanii/", "О компании"), (DELIVERY_PATH, "Доставка и оплата"), (WARRANTY_PATH, "Гарантия"), (FAQ_PATH, "Вопросы и ответы"),
                ("/gde-postavit-postroyku/", "Где поставить постройку"), ("/stati/", "Статьи")] + ([(CONTACTS_PATH, "Контакты")] if has_contacts() else [])
     blocks.append("<h2>Компания</h2><ul>" + "".join(f'<li><a href="{u}">{e(t)}</a></li>' for u, t in service) + "</ul>")
@@ -1885,10 +1947,17 @@ def policy_page():
 
 
 def not_found():
+    """404: старые адреса магазина и опечатки — ведём в каталог, к калькулятору и статьям (noindex)."""
+    main = [k for k in ["besedka", "banya", "naves", "terrasa", "hozblok", "karkas"] if k in BY_KEY]
+    tiles = "".join(f'<li><a class="dtile" href="{BY_KEY[k]["url"]}"><img src="/assets/img/calc/{k}.webp" alt="" width="360" height="240" loading="lazy">'
+                    f'<span>{e(BY_KEY[k]["name"])}</span></a></li>' for k in main)
     body = f"""{head(f"Страница не найдена | {SITE['name']}", "Страница не найдена", "/404.html", False)}{header("/#zayavka")}
-<main id="main"><div class="page"><div class="intro"><h1>Такой страницы нет</h1>
-<p class="intro__lead">Возможно, она переехала. Выберите постройку в каталоге.</p>
-<p><a class="btn btn--frame" href="/#razdely">Все постройки</a></p></div></div></main>
+<main id="main"><div class="page"><div class="intro"><div class="intro__text"><h1>Такой страницы нет</h1>
+<p class="intro__lead">Возможно, адрес устарел: раньше на этом домене был другой магазин. Сейчас здесь «{e(SITE['name'])}» — строим бани, беседки, навесы и другие постройки из дерева в Екатеринбурге.</p>
+<p class="intro__cta"><a class="btn btn--frame" href="/#razdely">Все постройки</a> {quiz_button()}</p></div></div>
+<section class="nf" aria-labelledby="nf-h"><h2 id="nf-h">Что ищут чаще всего</h2><ul class="drawer__tiles nf__tiles">{tiles}</ul>
+<p class="cta-line">Ещё: <a href="{CALC_PATH}">калькулятор стоимости</a>, <a href="{PRICES_PATH}">цены</a>, <a href="/nashi-raboty/">наши работы</a>, <a href="/stati/">статьи</a>, <a href="{CONTACTS_PATH}">контакты</a>.</p></section>
+</div></main>
 {footer()}"""
     (ROOT / "404.html").write_text(body, encoding="utf-8")
 
@@ -1934,8 +2003,8 @@ def main():
     calc_data_js()
     calc_page()
     indexable.append(CALC_PATH)
-    delivery_page(); warranty_page(); faq_page()
-    indexable += [DELIVERY_PATH, WARRANTY_PATH, FAQ_PATH]
+    delivery_page(); warranty_page(); faq_page(); prices_page()
+    indexable += [DELIVERY_PATH, WARRANTY_PATH, FAQ_PATH, PRICES_PATH]
     if ARTICLES:
         articles_hub()
         indexable.append("/stati/")
@@ -1969,7 +2038,7 @@ def main():
     (ROOT / "CNAME").write_text(SITE["domain"] + "\n", encoding="utf-8")  # свой домен для GitHub Pages
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")  # отдавать файлы как есть, без Jekyll
     (ROOT / "robots.txt").write_text(f"User-agent: *\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\n\nUser-agent: Yandex\nDisallow: /_build/\nDisallow: /docs/\nDisallow: /workers/\nClean-param: type /kalkulyator/\n\nSitemap: {SITE['base_url']}/sitemap.xml\n", encoding="utf-8")
-    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + 5 + 2 * bool(SITE.get("author")) + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
+    total = 1 + len(SECTIONS) + sum(len(s["subs"]) for s in SECTIONS) + 4 + (len(ARTICLES) + 1 if ARTICLES else 0) + len(GEO) + sum(1 for x in LISTINGS if x.get("photos")) + 6 + 2 * bool(SITE.get("author")) + has_contacts() + any(x.get("photos") for x in LISTINGS) + any(is_project(x) for x in LISTINGS)
     print(f"страниц: {total}, в индексе: {len(indexable)}")
 
 
