@@ -53,7 +53,7 @@ document.querySelectorAll("[data-form]").forEach((form) => {
     data.page = location.href;
     data.title = document.title;
     if (formKey) {
-      if (data.website) return;  // ловушка для ботов заполнена — молча не отправляем
+      if (data.website) { status.hidden = true; return; }  // ловушка для ботов заполнена — молча не отправляем
       delete data.website;
       Object.assign(data, { access_key: formKey, subject: `Заявка с magazinural.ru: ${data.type || "постройка"}`, from_name: "magazinural.ru" });
     }
@@ -189,7 +189,20 @@ if ("IntersectionObserver" in window && !reduce.matches) {
   const sel = ".passport, .ocards > li, .size, .adv > li, .dir__item, .cards4 > li, .facts > li, .howto__card, .faq__item, .steps, .lead__in, .author, .calc__form, .calc__result, .related li, .post__cover, .toc";
   const io = new IntersectionObserver((list) => list.forEach((en) => {
     if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
-  }), { rootMargin: "0px 0px -6% 0px" });
+  }));
+  // Страховка: при быстрой прокрутке блок может проскочить экран между кадрами — проявляем всё, что уже выше низа экрана.
+  let rvTick = 0;
+  const rvCatchUp = () => {
+    if (rvTick) return;
+    rvTick = requestAnimationFrame(() => {
+      rvTick = 0;
+      document.querySelectorAll(".rv:not(.in)").forEach((el) => {
+        if (el.getBoundingClientRect().top < innerHeight) { el.classList.add("in"); io.unobserve(el); }
+      });
+    });
+  };
+  addEventListener("scroll", rvCatchUp, { passive: true });
+  addEventListener("resize", rvCatchUp, { passive: true });
   document.querySelectorAll(sel).forEach((el) => {
     if (el.closest("dialog")) return;
     if (el.getBoundingClientRect().top < innerHeight * 0.95) return;

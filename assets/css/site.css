@@ -1014,3 +1014,7 @@ dialog.is-closing::backdrop { animation: fade-out .3s ease forwards; }
 @media (min-width: 960px) { .calc__grid { grid-template-columns: minmax(0, 1fr) 340px; } }
 .chip span { white-space: normal; line-height: 1.25; padding-top: 6px; padding-bottom: 6px; }
 @media (max-width: 959px) { .calc__result:not(.calc__result--quiz) .calc__sum { white-space: normal; } }
+/* удобные для пальца ссылки в таблицах, карточке автора и кнопка-ссылка в тексте */
+.ptable th a, .calc-t th a { display: inline-flex; align-items: center; min-height: 40px; }
+.author__name a { display: inline-flex; align-items: center; min-height: 40px; }
+.linkbtn { padding: 10px 2px; }

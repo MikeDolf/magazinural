@@ -38,7 +38,7 @@ from data.calc import CALC, CALC_RANGE, CALC_PLACES, CALC_NOTE
 from data.article_tables import ARTICLE_TABLES
 
 ROOT = Path(__file__).resolve().parent.parent
-VER = "50"  # меняйте при правке css/js
+VER = "51"  # меняйте при правке css/js
 
 BY_KEY = {s["key"]: s for s in SECTIONS}
 
